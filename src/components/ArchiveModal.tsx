@@ -52,13 +52,37 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'member' | 'trial'>('all');
 
+  // Helper to safely extract customer full name with fallbacks
+  const getRecordName = (r: ScoreCardRecord): string => {
+    const raw = (
+      r.Full_Name ||
+      (r as any).fullName ||
+      (r as any).full_name ||
+      (r as any).Nama ||
+      (r as any).nama ||
+      (r as any).Name ||
+      (r as any).name ||
+      (r as any).member_name ||
+      (r as any).memberName ||
+      (r as any).customer_name ||
+      (r as any).customerName ||
+      ''
+    ).toString().trim();
+
+    if (raw) return raw;
+    if (r.MemberID && r.MemberID !== 'TCC-????') return `Member ${r.MemberID}`;
+    return 'Tanpa Nama';
+  };
+
   const memberCount = useMemo(() => records.filter((r) => r.Customer_type === 'member').length, [records]);
   const trialCount = useMemo(() => records.filter((r) => r.Customer_type === 'trial').length, [records]);
 
   const filteredRecords = useMemo(() => {
     return records.filter((r) => {
       const q = search.toLowerCase();
+      const customerName = getRecordName(r);
       const matchSearch =
+        customerName.toLowerCase().includes(q) ||
         (r.Full_Name || '').toLowerCase().includes(q) ||
         (r.MemberID || '').toLowerCase().includes(q) ||
         (r.Coaches || '').toLowerCase().includes(q);
@@ -235,69 +259,76 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
             return (
               <div
                 key={r.id}
-                className="group p-5 rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-850 hover:border-emerald-300 dark:hover:border-emerald-800 hover:shadow-md transition-all duration-200 flex flex-col lg:flex-row lg:items-center justify-between gap-4"
+                className="p-5 sm:p-6 rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-850 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-4"
               >
-                {/* A. Left Identity & Member Info (Roomy & High Contrast) */}
-                <div className="space-y-2 flex-1 min-w-0">
-                  <div className="flex flex-wrap items-center gap-2.5">
-                    {/* Participant Full Name */}
-                    <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white tracking-tight group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors">
-                      {r.Full_Name || 'Tanpa Nama'}
-                    </h3>
+                {/* A. Left Identity & Member Info (Static, High Contrast, No Hover Effect) */}
+                <div className="space-y-2.5 flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+                    {/* User Icon Avatar */}
+                    <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-600">
+                      <User className="w-4 h-4 text-slate-600 dark:text-slate-300" />
+                    </div>
+
+                    {/* Participant Full Name (Boxed with exact same colors as Member ID box for maximum visibility) */}
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-100 border border-slate-300 dark:border-slate-600 font-bold text-sm sm:text-base shadow-2xs">
+                      <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Nama:</span>
+                      <span className="text-slate-900 dark:text-white font-extrabold">{getRecordName(r)}</span>
+                    </div>
 
                     {/* Member ID Badge */}
-                    <span className="font-mono text-xs font-bold px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700">
-                      {r.MemberID || 'TCC-????'}
-                    </span>
+                    <div className="inline-flex items-center gap-1.5 font-mono text-xs font-bold px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-100 border border-slate-300 dark:border-slate-600">
+                      <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase">ID:</span>
+                      <span>{r.MemberID || 'TCC-????'}</span>
+                    </div>
 
                     {/* Customer Category Badge */}
                     <span
-                      className={`text-[11px] font-bold px-2.5 py-0.5 rounded-md ${
+                      className={`text-xs font-bold px-2.5 py-1 rounded-lg border ${
                         r.Customer_type === 'member'
-                          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
-                          : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
+                          ? 'bg-emerald-100 text-emerald-900 dark:bg-emerald-950/80 dark:text-emerald-200 border-emerald-300 dark:border-emerald-800'
+                          : 'bg-amber-100 text-amber-900 dark:bg-amber-950/80 dark:text-amber-200 border-amber-300 dark:border-amber-800'
                       }`}
                     >
                       {r.Customer_type === 'member' ? 'Member TCC' : 'Trial User'}
                     </span>
                   </div>
 
-                  {/* Metadata line: Test date, coach, age, gender */}
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-slate-500 dark:text-slate-400">
+                  {/* Metadata line: Test date, coach, age, gender (High contrast & clear text) */}
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-slate-600 dark:text-slate-300">
                     <span className="flex items-center gap-1.5 font-medium">
-                      <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                      Tanggal Tes: <strong className="text-slate-700 dark:text-slate-200">{r.Test_Date || '-'}</strong>
+                      <Calendar className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                      Tanggal Tes: <strong className="text-slate-900 dark:text-white">{r.Test_Date || '-'}</strong>
                     </span>
                     <span>•</span>
                     <span className="flex items-center gap-1.5 font-medium">
-                      Coach: <strong className="text-slate-700 dark:text-slate-200">{r.Coaches || '-'}</strong>
+                      Coach: <strong className="text-slate-900 dark:text-white">{r.Coaches || '-'}</strong>
                     </span>
                     <span>•</span>
-                    <span>Gender: <strong className="capitalize text-slate-700 dark:text-slate-200">{r.Gender || '-'}</strong></span>
+                    <span>Gender: <strong className="capitalize text-slate-900 dark:text-white">{r.Gender || '-'}</strong></span>
                     {r.Umur !== null && (
                       <>
                         <span>•</span>
-                        <span>Usia: <strong className="text-slate-700 dark:text-slate-200">{r.Umur} Tahun</strong></span>
+                        <span>Usia: <strong className="text-slate-900 dark:text-white">{r.Umur} Tahun</strong></span>
                       </>
                     )}
                   </div>
                 </div>
 
                 {/* B. Middle Metrics Badges (Clear Physical Overview) */}
-                <div className="flex flex-wrap items-center gap-3 py-2 px-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-750 text-xs shrink-0">
+                <div className="flex flex-wrap items-center gap-3.5 py-2.5 px-4 rounded-xl bg-slate-100/90 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs shrink-0">
                   {/* Tinggi & Berat */}
                   <div className="space-y-0.5">
-                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Tinggi / Berat</span>
-                    <span className="font-semibold text-slate-800 dark:text-slate-200 font-mono">
+                    <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 block">Tinggi / Berat</span>
+                    <span className="font-bold text-slate-900 dark:text-white font-mono">
                       {r.height ? `${r.height} cm` : '-'} / {r.weight ? `${r.weight} kg` : '-'}
                     </span>
                   </div>
 
-                  <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block" />
+                  <div className="h-6 w-px bg-slate-300 dark:bg-slate-700 hidden sm:block" />
 
                   {/* BMI & Category */}
                   <div className="space-y-0.5">
-                    <span className="text-[10px] uppercase font-bold text-slate-400 block">BMI & Klasifikasi</span>
+                    <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 block">BMI & Klasifikasi</span>
                     <div className="flex items-center gap-1.5">
                       <span className="font-mono font-bold text-slate-900 dark:text-white">
                         {r.BMI !== null ? r.BMI : '-'}
@@ -310,11 +341,11 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                     </div>
                   </div>
 
-                  <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block" />
+                  <div className="h-6 w-px bg-slate-300 dark:bg-slate-700 hidden sm:block" />
 
                   {/* Avg Skill */}
                   <div className="space-y-0.5">
-                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Skill Avg</span>
+                    <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 block">Skill Avg</span>
                     <span className="font-mono font-extrabold text-purple-700 dark:text-purple-300">
                       {r.avg_skill !== null ? `${r.avg_skill.toFixed(1)} / 4.0` : '-'}
                     </span>

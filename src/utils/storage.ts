@@ -163,7 +163,30 @@ export function getStoredRecords(): ScoreCardRecord[] {
       return SEED_RECORDS;
     }
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : SEED_RECORDS;
+    if (Array.isArray(parsed)) {
+      // Normalize any historical or external records to ensure Full_Name and MemberID are always present
+      return parsed.map((item: any) => ({
+        ...item,
+        Full_Name:
+          (
+            item.Full_Name ||
+            item.fullName ||
+            item.full_name ||
+            item.Name ||
+            item.name ||
+            item.nama ||
+            item.Nama ||
+            item.member_name ||
+            item.memberName ||
+            item.customer_name ||
+            item.customerName ||
+            (item.MemberID ? `Member ${item.MemberID}` : 'Nama Belum Diisi')
+          ).toString().trim() || (item.MemberID ? `Member ${item.MemberID}` : 'Nama Belum Diisi'),
+        MemberID: item.MemberID || item.memberId || item.member_id || item.Member_Id || '',
+        Customer_type: item.Customer_type || item.customer_type || item.customerType || 'member',
+      }));
+    }
+    return SEED_RECORDS;
   } catch (e) {
     console.error('Failed reading records from localStorage:', e);
     return SEED_RECORDS;

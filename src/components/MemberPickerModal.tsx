@@ -125,7 +125,7 @@ export const MemberPickerModal: React.FC<MemberPickerModalProps> = ({
                 <div className="space-y-0.5">
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-sm text-slate-900 dark:text-white group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors">
-                      {m.Full_Name}
+                      {(m.Full_Name || (m as any).fullName || (m as any).full_name || (m as any).Nama || (m as any).nama || '').trim() || m.MemberID || 'Tanpa Nama'}
                     </span>
                     <span className="font-mono text-xs px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold">
                       {m.MemberID}
