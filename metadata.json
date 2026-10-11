@@ -1,0 +1,6 @@
+{
+  "name": "The Core Chamber - Fitness Score Card",
+  "description": "Web App Formulir Physical Fitness Score Card The Core Chamber untuk evaluasi kebugaran, komposisi tubuh, BMI, functional, strength, dan skill assessment.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
