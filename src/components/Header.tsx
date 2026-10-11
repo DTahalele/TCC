@@ -1,5 +1,5 @@
 import React from 'react';
-import { Database, FileText, Moon, Sun, Printer, ShieldCheck, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Database, FileText, Moon, Sun, Printer, Settings } from 'lucide-react';
 import { TCCLogo } from './TCCLogo';
 
 interface HeaderProps {
@@ -10,6 +10,7 @@ interface HeaderProps {
   setDarkMode: (val: boolean) => void;
   onOpenGoogleSheetModal: () => void;
   isSheetConnected: boolean;
+  onToggleConnection?: () => void;
   onPrint: () => void;
 }
 
@@ -21,6 +22,7 @@ export const Header: React.FC<HeaderProps> = ({
   setDarkMode,
   onOpenGoogleSheetModal,
   isSheetConnected,
+  onToggleConnection,
   onPrint,
 }) => {
   return (
@@ -80,21 +82,49 @@ export const Header: React.FC<HeaderProps> = ({
             </span>
           </button>
 
-          {/* Google Sheets Sync Button */}
-          <button
-            type="button"
-            onClick={onOpenGoogleSheetModal}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
-              isSheetConnected
-                ? 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800'
-                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-emerald-500'
-            }`}
-            title="Konfigurasi Google Sheet"
-          >
-            <span className={`w-2 h-2 rounded-full ${isSheetConnected ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
-            <span className="hidden md:inline">Google Sheet</span>
-            {isSheetConnected && <span className="text-[10px] font-bold">ON</span>}
-          </button>
+          {/* Status Indikator Database (ON Hijau / OFF Merah) */}
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={onToggleConnection}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
+                isSheetConnected
+                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 hover:bg-emerald-100/70'
+                  : 'bg-rose-50 text-rose-800 border-rose-300 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800 hover:bg-rose-100/70'
+              }`}
+              title={
+                isSheetConnected
+                  ? 'Status Database: ON (Tersambung). Klik untuk beralih ke OFF.'
+                  : 'Status Database: OFF (Terputus). Klik untuk menyambungkan kembali (ON).'
+              }
+            >
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  isSheetConnected ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'
+                }`}
+              />
+              <span className="hidden sm:inline font-medium">Google Sheet</span>
+              <span
+                className={`text-[11px] font-extrabold tracking-wide ${
+                  isSheetConnected
+                    ? 'text-emerald-600 dark:text-emerald-400'
+                    : 'text-rose-600 dark:text-rose-400'
+                }`}
+              >
+                {isSheetConnected ? 'ON' : 'OFF'}
+              </span>
+            </button>
+
+            {/* Tombol Pengaturan URL Apps Script (untuk mengubah template / URL di masa depan) */}
+            <button
+              type="button"
+              onClick={onOpenGoogleSheetModal}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer"
+              title="Pengaturan URL Google Apps Script & Template Database"
+            >
+              <Settings className="w-3.5 h-3.5" />
+            </button>
+          </div>
 
           {/* Cetak PDF */}
           <button

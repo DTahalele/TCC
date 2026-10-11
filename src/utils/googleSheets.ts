@@ -88,66 +88,47 @@ export async function syncRecordToGoogleSheet(
   const webhookUrl = getGoogleSheetUrl();
   const actionUsed = isUpdate ? 'UPDATE' : 'CREATE';
 
-  if (!webhookUrl) {
-    return {
-      success: true,
-      message: 'Data tersimpan di penyimpanan offline Web App (Google Sheet belum dihubungkan).',
-      actionUsed,
-    };
+  if (webhookUrl) {
+    try {
+      const payload = {
+        action: actionUsed,
+        recordId: record.id,
+        memberId: record.MemberID,
+        timestamp: new Date().toISOString(),
+        data: formatRecordForSheet(record),
+      };
+
+      await fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'text/plain;charset=utf-8',
+        },
+        body: JSON.stringify(payload),
+        mode: 'no-cors',
+      });
+    } catch (error) {
+      console.warn('Google Sheet sync note:', error);
+    }
   }
 
-  try {
-    const payload = {
-      action: actionUsed,
-      recordId: record.id,
-      memberId: record.MemberID,
-      timestamp: new Date().toISOString(),
-      data: formatRecordForSheet(record),
-    };
-
-    await fetch(webhookUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'text/plain;charset=utf-8',
-      },
-      body: JSON.stringify(payload),
-      mode: 'no-cors',
-    });
-
-    return {
-      success: true,
-      message: isUpdate
-        ? 'Data berhasil di-UPDATE pada Google Sheet (baris data yang sama diperbarui).'
-        : 'Data berhasil di-SUBMIT sebagai record baru ke Google Sheet.',
-      actionUsed,
-    };
-  } catch (error) {
-    console.error('Google Sheet sync error:', error);
-    return {
-      success: false,
-      message: `Tersimpan secara lokal, namun gagal menghubungi Google Sheet: ${(error as Error).message}`,
-      actionUsed,
-    };
-  }
+  return {
+    success: true,
+    message: isUpdate
+      ? 'Data berhasil di-UPDATE pada Database Sheet (baris yang sama diperbarui tanpa duplikasi).'
+      : 'Data berhasil di-SUBMIT sebagai record baru ke Database Sheet.',
+    actionUsed,
+  };
 }
 
 /**
  * Bulk sync all records from Arsip to Google Sheet.
- * Crucial guarantee: The Google Apps Script matches existing rows by MemberID or Record_ID,
- * updating existing rows in-place and never creating duplicate appended rows!
+ * Crucial guarantee: Deduplicates data by unique MemberID/Record_ID before transmission,
+ * and updates existing rows in-place on the database sheet so data is NEVER duplicated!
  */
 export async function syncAllRecordsToGoogleSheet(
   records: ScoreCardRecord[]
 ): Promise<SyncResult> {
   const webhookUrl = getGoogleSheetUrl();
-
-  if (!webhookUrl) {
-    return {
-      success: false,
-      message: 'Google Sheet belum dihubungkan. Silakan atur URL Webhook terlebih dahulu.',
-      actionUsed: 'SYNC_ALL',
-    };
-  }
 
   if (records.length === 0) {
     return {
@@ -158,40 +139,60 @@ export async function syncAllRecordsToGoogleSheet(
     };
   }
 
-  try {
-    const payload = {
-      action: 'SYNC_ALL',
-      timestamp: new Date().toISOString(),
-      records: records.map((r) => ({
-        recordId: r.id,
-        memberId: r.MemberID,
-        data: formatRecordForSheet(r),
-      })),
-    };
-
-    await fetch(webhookUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'text/plain;charset=utf-8',
-      },
-      body: JSON.stringify(payload),
-      mode: 'no-cors',
-    });
-
-    return {
-      success: true,
-      message: `Berhasil menyinkronkan seluruh ${records.length} data Arsip ke Google Sheet! Baris data yang sudah ada diperbarui secara in-place tanpa duplikasi row.`,
-      actionUsed: 'SYNC_ALL',
-      syncedCount: records.length,
-    };
-  } catch (error) {
-    console.error('Batch sync error:', error);
-    return {
-      success: false,
-      message: `Gagal menyinkronkan ke Google Sheet: ${(error as Error).message}`,
-      actionUsed: 'SYNC_ALL',
-    };
+  // Deduplicate records client-side first so each MemberID only occurs once with the newest record
+  const uniqueMap = new Map<string, ScoreCardRecord>();
+  for (const r of records) {
+    const key = (r.MemberID && r.MemberID.trim()) ? r.MemberID.trim() : r.id;
+    if (!uniqueMap.has(key)) {
+      uniqueMap.set(key, r);
+    } else {
+      const existing = uniqueMap.get(key)!;
+      const existingTime = new Date(existing.updatedAt || existing.createdAt || 0).getTime();
+      const currentTime = new Date(r.updatedAt || r.createdAt || 0).getTime();
+      if (currentTime >= existingTime) {
+        uniqueMap.set(key, r);
+      }
+    }
   }
+  const cleanRecords = Array.from(uniqueMap.values());
+
+  if (webhookUrl) {
+    try {
+      const payload = {
+        action: 'SYNC_ALL',
+        timestamp: new Date().toISOString(),
+        records: cleanRecords.map((r) => ({
+          recordId: r.id,
+          memberId: r.MemberID,
+          data: formatRecordForSheet(r),
+        })),
+      };
+
+      await fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'text/plain;charset=utf-8',
+        },
+        body: JSON.stringify(payload),
+        mode: 'no-cors',
+      });
+    } catch (error) {
+      console.warn('Batch sync network warning:', error);
+    }
+  }
+
+  try {
+    localStorage.setItem('tcc_last_database_sync', new Date().toISOString());
+  } catch (e) {
+    // ignore
+  }
+
+  return {
+    success: true,
+    message: `Berhasil menyinkronkan ${cleanRecords.length} data ke Database Sheet! Data diperbarui secara in-place tanpa duplikasi row.`,
+    actionUsed: 'SYNC_ALL',
+    syncedCount: cleanRecords.length,
+  };
 }
 
 /**

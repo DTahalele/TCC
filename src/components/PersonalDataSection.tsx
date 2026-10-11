@@ -54,51 +54,27 @@ export const PersonalDataSection: React.FC<PersonalDataSectionProps> = ({
         )}
       </div>
 
-      {/* 1. Kategori Customer */}
-      <div className="space-y-2">
+      {/* 1. Kategori Customer (Otomatis Plain Text sesuai pilihan di atas) */}
+      <div className="space-y-1">
         <div className="flex items-center justify-between text-xs">
           <label className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
             <span>Kategori Customer</span>
             <span className="text-rose-500">*</span>
-            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">✓ Terisi</span>
+            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">✓ Otomatis</span>
           </label>
           <span className="text-slate-400 text-[11px]">
-            {customerType === 'member' ? 'Member Regular TCC' : 'Customer Trial (1x Sesi)'}
+            Otomatis terisi dari pilihan tombol atas
           </span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <button
-            type="button"
-            onClick={() => {
-              onChange('Customer_type', 'member');
-              onChange('entry_type', 'member');
-            }}
-            className={`flex items-center justify-center gap-2 p-3 rounded-xl border text-xs sm:text-sm font-bold transition-all ${
-              customerType === 'member'
-                ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
-                : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-50'
-            }`}
-          >
-            <Shield className="w-4 h-4" />
-            <span>Customer "Member" (Regular TCC)</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              onChange('Customer_type', 'trial');
-              onChange('entry_type', 'trial');
-            }}
-            className={`flex items-center justify-center gap-2 p-3 rounded-xl border text-xs sm:text-sm font-bold transition-all ${
-              customerType === 'trial'
-                ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 border-slate-900 dark:border-white shadow-sm'
-                : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-50'
-            }`}
-          >
-            <User className="w-4 h-4" />
-            <span>Customer "Trial" (1x Sesi / Trial)</span>
-          </button>
+        {/* Format Plain Text (tanpa box/button) */}
+        <div className="py-1">
+          <span className="text-sm sm:text-base font-bold text-slate-900 dark:text-white tracking-wide">
+            {customerType === 'member' ? 'Member TCC' : 'Trial User'}
+          </span>
+          <span className="ml-2 text-xs font-normal text-slate-500 dark:text-slate-400">
+            {customerType === 'member' ? '(Member Regular TCC)' : '(1x Sesi / Trial User)'}
+          </span>
         </div>
       </div>
 

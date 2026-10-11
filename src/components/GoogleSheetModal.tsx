@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { X, Check, Copy, ExternalLink, ShieldCheck, Database, Sparkles, AlertCircle, Send, CheckCircle2, RefreshCw } from 'lucide-react';
-import { getGoogleSheetUrl, setGoogleSheetUrl } from '../utils/storage';
+import { X, Check, Copy, ExternalLink, ShieldCheck, Database, Send, CheckCircle2, Lock, KeyRound, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { getGoogleSheetUrl, setGoogleSheetUrl, verifyAdminPassword, setAdminPassword } from '../utils/storage';
 import { GOOGLE_APPS_SCRIPT_TEMPLATE, sendTestRowToGoogleSheet } from '../utils/googleSheets';
 
 interface GoogleSheetModalProps {
@@ -14,20 +14,54 @@ export const GoogleSheetModal: React.FC<GoogleSheetModalProps> = ({
   onClose,
   onUrlUpdated,
 }) => {
-  const [url, setUrl] = useState(getGoogleSheetUrl());
+  const initialUrl = getGoogleSheetUrl();
+  const [url, setUrl] = useState(initialUrl);
   const [copied, setCopied] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ text: string; success: boolean } | null>(null);
 
+  // Password authorization state for saving changes
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [adminPasswordInput, setAdminPasswordInput] = useState('');
+  const [authError, setAuthError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+
+  // Optional: change password accordion state
+  const [showChangePass, setShowChangePass] = useState(false);
+  const [newPasswordInput, setNewPasswordInput] = useState('');
+
   if (!isOpen) return null;
 
-  const handleSave = () => {
+  // Click Simpan Pengaturan triggers password verification
+  const handleInitiateSave = () => {
+    // If no changes were made and url is identical, just close
+    if (url.trim() === initialUrl.trim() && !newPasswordInput.trim()) {
+      onClose();
+      return;
+    }
+    setAuthError('');
+    setAdminPasswordInput('');
+    setIsAuthModalOpen(true);
+  };
+
+  const handleConfirmAuthorizedSave = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!verifyAdminPassword(adminPasswordInput)) {
+      setAuthError('Password Admin salah! Otorisasi gagal.');
+      return;
+    }
+
+    // Password valid -> execute save
     setGoogleSheetUrl(url);
+    if (newPasswordInput.trim()) {
+      setAdminPassword(newPasswordInput.trim());
+    }
     onUrlUpdated();
-    setTestResult({ text: 'URL Google Sheet berhasil disimpan!', success: true });
+    setIsAuthModalOpen(false);
+    setTestResult({ text: '✓ Pengaturan Google Sheet berhasil diotorisasi & disimpan!', success: true });
     setTimeout(() => {
       onClose();
-    }, 1000);
+    }, 1200);
   };
 
   const handleCopyCode = () => {
@@ -47,7 +81,6 @@ export const GoogleSheetModal: React.FC<GoogleSheetModalProps> = ({
     setTesting(true);
     setTestResult(null);
     try {
-      // Simpan URL terlebih dahulu jika baru diedit
       setGoogleSheetUrl(url);
       const res = await sendTestRowToGoogleSheet();
       setTestResult({
@@ -71,7 +104,7 @@ export const GoogleSheetModal: React.FC<GoogleSheetModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/60 backdrop-blur-xs">
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-2xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-2xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 relative">
         {/* Header */}
         <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
@@ -83,7 +116,7 @@ export const GoogleSheetModal: React.FC<GoogleSheetModalProps> = ({
                 PANDUAN & PENGATURAN GOOGLE SHEET DATABASE
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Penyelesaian kendala sinkronisasi & verifikasi penulisan data ke Spreadsheet
+                Area Khusus Admin — Terkunci Otorisasi Password
               </p>
             </div>
           </div>
@@ -98,33 +131,17 @@ export const GoogleSheetModal: React.FC<GoogleSheetModalProps> = ({
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-5">
-          {/* Diagnostic Alert Box: Akun Berbeda & 3 Syarat Wajib */}
-          <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200 text-xs leading-relaxed space-y-2">
-            <div className="font-bold flex items-center gap-1.5 text-sm text-amber-800 dark:text-amber-300">
-              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
-              <span>Penyebab Data Belum Masuk (Khusus Jika Akun Gmail Berbeda):</span>
-            </div>
-            <p>
-              Karena Anda menggunakan <strong>akun Gmail yang berbeda</strong> dengan akun pembuat sheet, Google Apps Script secara bawaan akan <strong>memblokir</strong> pengiriman data kecuali 2 opsi ini disetel dengan benar:
-            </p>
-            <ul className="list-disc list-inside space-y-1 pl-1 font-semibold">
-              <li>
-                <strong>"Execute as"</strong> WAJIB disetel: <span className="underline">Me (email pemilik sheet)</span>. <em>(Jangan pilih "User accessing the web app")</em>.
-              </li>
-              <li>
-                <strong>"Who has access"</strong> WAJIB disetel: <span className="underline">Anyone (Siapa saja)</span>. <em>(Jika dipilih "Only myself", data tidak bisa masuk sama sekali!)</em>
-              </li>
-              <li>
-                <strong>Deploy Versi Baru:</strong> Setiap kali kode diperbarui, klik <strong>Deploy &gt; Manage deployments &gt; Edit (ikon pensil) &gt; Version: New version &gt; Deploy</strong>.
-              </li>
-            </ul>
-          </div>
-
           {/* Webhook Input & Interactive Test Buttons */}
           <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-              Google Apps Script Web App URL:
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                <Lock className="w-3.5 h-3.5 text-amber-500" />
+                <span>Google Apps Script Web App URL:</span>
+              </label>
+              <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500">
+                Perubahan memerlukan verifikasi Password
+              </span>
+            </div>
             <input
               type="url"
               value={url}
@@ -172,11 +189,41 @@ export const GoogleSheetModal: React.FC<GoogleSheetModalProps> = ({
             )}
           </div>
 
+          {/* Optional: Ubah Password Admin Section */}
+          <div className="pt-1">
+            <button
+              type="button"
+              onClick={() => setShowChangePass(!showChangePass)}
+              className="text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 flex items-center gap-1.5"
+            >
+              <KeyRound className="w-3.5 h-3.5" />
+              <span>{showChangePass ? 'Sembunyikan Pengaturan Password' : 'Ganti Password Admin (Opsional)'}</span>
+            </button>
+
+            {showChangePass && (
+              <div className="mt-2.5 p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-2">
+                <label className="text-[11px] font-bold text-slate-600 dark:text-slate-300 block">
+                  Password Admin Baru (Default: <code>admin</code>):
+                </label>
+                <input
+                  type="text"
+                  value={newPasswordInput}
+                  onChange={(e) => setNewPasswordInput(e.target.value)}
+                  placeholder="Masukkan password admin baru..."
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-xs text-slate-900 dark:text-white"
+                />
+                <p className="text-[10px] text-slate-400 dark:text-slate-500">
+                  Password baru akan aktif setelah Anda klik "Simpan Pengaturan" dan memverifikasi dengan password saat ini.
+                </p>
+              </div>
+            )}
+          </div>
+
           {/* Tutorial Step-by-Step */}
           <div className="space-y-3 pt-2 border-t border-slate-100 dark:border-slate-800">
             <div className="flex items-center justify-between">
               <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-800 dark:text-slate-200">
-                Langkah Cepat Memperbaiki Google Apps Script:
+                Langkah Cepat Memperbarui Google Apps Script:
               </h4>
               <button
                 type="button"
@@ -193,7 +240,7 @@ export const GoogleSheetModal: React.FC<GoogleSheetModalProps> = ({
                 Buka Google Sheet database Anda, klik <strong>Extensions &gt; Apps Script</strong>.
               </li>
               <li>
-                Hapus semua kode lama di file <code>Code.gs</code>, lalu <strong>Paste kode script terbaru</strong> yang sudah diperbarui dengan fungsi anti-duplikasi dan fitur tes.
+                Hapus semua kode lama di file <code>Code.gs</code>, lalu <strong>Paste kode script terbaru</strong> yang sudah dilengkapi fungsi anti-duplikasi dan fitur tes.
               </li>
               <li>
                 Klik tombol <strong>Save (ikon disket)</strong>.
@@ -229,22 +276,96 @@ export const GoogleSheetModal: React.FC<GoogleSheetModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex items-center justify-end gap-2.5">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-          >
-            Tutup
-          </button>
-          <button
-            type="button"
-            onClick={handleSave}
-            className="px-5 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-colors"
-          >
-            Simpan Pengaturan
-          </button>
+        <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex items-center justify-between gap-2.5">
+          <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400">
+            <ShieldCheck className="w-4 h-4 text-emerald-600" />
+            <span>Dilindungi Otorisasi Admin</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+            >
+              Tutup
+            </button>
+            <button
+              type="button"
+              onClick={handleInitiateSave}
+              className="flex items-center gap-1.5 px-5 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-colors"
+            >
+              <Lock className="w-3.5 h-3.5" />
+              <span>Simpan Pengaturan</span>
+            </button>
+          </div>
         </div>
+
+        {/* Pop-up Modal Otorisasi Password Admin */}
+        {isAuthModalOpen && (
+          <div className="absolute inset-0 z-60 bg-slate-950/75 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 w-full max-w-sm shadow-2xl space-y-4 animate-in zoom-in-95 duration-150">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400">
+                  <KeyRound className="w-6 h-6" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">
+                    Verifikasi Password Admin
+                  </h4>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Masukkan password admin untuk menyimpan perubahan konfigurasi database.
+                  </p>
+                </div>
+              </div>
+
+              <form onSubmit={handleConfirmAuthorizedSave} className="space-y-3">
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={adminPasswordInput}
+                    onChange={(e) => {
+                      setAdminPasswordInput(e.target.value);
+                      setAuthError('');
+                    }}
+                    autoFocus
+                    placeholder="Masukkan Password Admin (Default: admin)"
+                    className="w-full px-3.5 py-2.5 pr-10 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+
+                {authError && (
+                  <p className="text-xs text-rose-600 dark:text-rose-400 font-semibold flex items-center gap-1">
+                    <span>✕</span> {authError}
+                  </p>
+                )}
+
+                <div className="pt-2 flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsAuthModalOpen(false)}
+                    className="px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-colors flex items-center gap-1.5"
+                  >
+                    <Check className="w-3.5 h-3.5" />
+                    <span>Otorisasi & Simpan</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

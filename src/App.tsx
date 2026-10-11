@@ -25,6 +25,8 @@ import {
   saveOrUpdateRecord,
   deleteStoredRecord,
   getGoogleSheetUrl,
+  isDatabaseConnected,
+  setDatabaseConnected,
 } from './utils/storage';
 import { syncRecordToGoogleSheet, syncAllRecordsToGoogleSheet } from './utils/googleSheets';
 
@@ -99,7 +101,20 @@ export default function App() {
     }
   }, [toastMessage]);
 
-  const isSheetConnected = Boolean(getGoogleSheetUrl());
+  const [isSheetConnected, setIsSheetConnected] = useState<boolean>(() => isDatabaseConnected());
+
+  // Toggle Database Connection Status (ON / OFF)
+  const handleToggleSheetConnection = () => {
+    const nextState = !isSheetConnected;
+    setIsSheetConnected(nextState);
+    setDatabaseConnected(nextState);
+    setToastMessage({
+      text: nextState
+        ? '✓ Database Status: ON (Tersambung ke Google Sheet).'
+        : '✕ Database Status: OFF (Sambungan database dinonaktifkan / offline).',
+      type: nextState ? 'success' : 'error',
+    });
+  };
 
   // Handle generic form field changes
   const handleFieldChange = (field: string, value: any) => {
@@ -391,13 +406,12 @@ export default function App() {
     setToastMessage({ text: 'Record berhasil dihapus dari penyimpanan.', type: 'info' });
   };
 
-  // Sync entire Archive to Google Sheet without duplicating rows
+  // Sync entire Archive directly to Google Sheet database without opening any setting page, preventing duplicate rows
   const handleSyncAllToDatabase = async () => {
     if (!isSheetConnected) {
-      setIsGoogleSheetModalOpen(true);
       setToastMessage({
-        text: 'Google Sheet belum terhubung. Silakan masukkan Webhook URL Anda di bawah ini.',
-        type: 'info',
+        text: 'Status Database sedang OFF. Klik tombol status "Google Sheet OFF" di header untuk mengaktifkannya (ON) terlebih dahulu.',
+        type: 'error',
       });
       return;
     }
@@ -420,7 +434,7 @@ export default function App() {
           origin: { y: 0.6 },
         });
         setToastMessage({
-          text: `✓ Sukses! Seluruh ${records.length} data Arsip berhasil disinkronkan ke Google Sheet tanpa duplikasi baris.`,
+          text: `✓ Sukses! Seluruh ${res.syncedCount || records.length} data Arsip berhasil disinkronkan ke Database Sheet tanpa duplikasi baris.`,
           type: 'success',
         });
       } else {
@@ -506,6 +520,7 @@ export default function App() {
         setDarkMode={setDarkMode}
         onOpenGoogleSheetModal={() => setIsGoogleSheetModalOpen(true)}
         isSheetConnected={isSheetConnected}
+        onToggleConnection={handleToggleSheetConnection}
         onPrint={handlePrint}
       />
 

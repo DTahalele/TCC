@@ -29,7 +29,7 @@ export const PrintView: React.FC<PrintViewProps> = ({ record }) => {
             {record.MemberID || 'TCC-XXXX'}
           </div>
           <div className="text-[10px] mt-1 font-semibold uppercase">
-            Kategori: {record.Customer_type === 'member' ? 'Member Regular' : 'Trial'}
+            Kategori: {record.Customer_type === 'member' ? 'Member TCC' : 'Trial User'}
           </div>
         </div>
       </div>

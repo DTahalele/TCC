@@ -225,11 +225,58 @@ export function deleteStoredRecord(id: string): ScoreCardRecord[] {
 }
 
 export function getGoogleSheetUrl(): string {
-  return localStorage.getItem(GOOGLE_SHEET_URL_KEY) || '';
+  return (
+    localStorage.getItem(GOOGLE_SHEET_URL_KEY) ||
+    (import.meta.env.VITE_GOOGLE_SHEET_WEBHOOK_URL as string) ||
+    ''
+  );
 }
 
 export function setGoogleSheetUrl(url: string): void {
   localStorage.setItem(GOOGLE_SHEET_URL_KEY, url.trim());
+}
+
+const ADMIN_PASSWORD_KEY = 'tcc_admin_pin_password';
+const DEFAULT_ADMIN_PASSWORD = 'admin';
+
+export function getAdminPassword(): string {
+  try {
+    return localStorage.getItem(ADMIN_PASSWORD_KEY) || DEFAULT_ADMIN_PASSWORD;
+  } catch (e) {
+    return DEFAULT_ADMIN_PASSWORD;
+  }
+}
+
+export function setAdminPassword(newPass: string): void {
+  try {
+    localStorage.setItem(ADMIN_PASSWORD_KEY, newPass.trim());
+  } catch (e) {
+    // ignore
+  }
+}
+
+export function verifyAdminPassword(input: string): boolean {
+  return input.trim() === getAdminPassword();
+}
+
+const DB_STATUS_KEY = 'tcc_database_status_active';
+
+export function isDatabaseConnected(): boolean {
+  try {
+    const val = localStorage.getItem(DB_STATUS_KEY);
+    if (val === 'false') return false;
+    return true;
+  } catch (e) {
+    return true;
+  }
+}
+
+export function setDatabaseConnected(connected: boolean): void {
+  try {
+    localStorage.setItem(DB_STATUS_KEY, connected ? 'true' : 'false');
+  } catch (e) {
+    // ignore
+  }
 }
 
 /**

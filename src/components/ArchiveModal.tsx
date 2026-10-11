@@ -187,20 +187,20 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
             </button>
           </div>
 
-          {/* Sync to Database Button */}
+          {/* Sync to Database Button (Direct sync without modal redirect) */}
           <button
             type="button"
             onClick={onSyncToDatabase}
             disabled={isSyncing}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition-all shadow-sm shrink-0 ${
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition-all shadow-sm shrink-0 cursor-pointer ${
               isSyncing
-                ? 'bg-emerald-700 text-white opacity-80 cursor-not-allowed'
+                ? 'bg-emerald-700 text-white opacity-85 cursor-not-allowed'
                 : 'bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white ring-2 ring-emerald-500/20'
             }`}
-            title="Salin dan perbarui seluruh data Arsip ke database Google Sheet tanpa duplikasi baris"
+            title="Kirim dan sinkronkan seluruh data Arsip langsung ke database sheet tanpa duplikasi data"
           >
             <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
-            <span>{isSyncing ? 'Menyinkronkan...' : 'Sync to Database'}</span>
+            <span>{isSyncing ? 'Menyinkronkan ke Database...' : 'Sync to Database'}</span>
           </button>
 
           {/* Export CSV Button */}
@@ -255,10 +255,10 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                       className={`text-[11px] font-bold px-2.5 py-0.5 rounded-md ${
                         r.Customer_type === 'member'
                           ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
-                          : 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
+                          : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
                       }`}
                     >
-                      {r.Customer_type === 'member' ? 'Member Regular TCC' : 'Customer Trial (1x)'}
+                      {r.Customer_type === 'member' ? 'Member TCC' : 'Trial User'}
                     </span>
                   </div>
 
@@ -379,10 +379,10 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
             type="button"
             onClick={onSyncToDatabase}
             disabled={isSyncing}
-            className="font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
+            className="font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1 cursor-pointer"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
-            <span>Sync Semua ke Database</span>
+            <span>{isSyncing ? 'Menyinkronkan ke Database...' : 'Sync Semua ke Database'}</span>
           </button>
 
           {!isFullPage && (
