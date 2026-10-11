@@ -255,8 +255,17 @@ export function getGoogleSheetUrl(): string {
   );
 }
 
+export function hasGoogleSheetUrlConfigured(): boolean {
+  const url = getGoogleSheetUrl();
+  return Boolean(url && url.trim().length > 0);
+}
+
 export function setGoogleSheetUrl(url: string): void {
-  localStorage.setItem(GOOGLE_SHEET_URL_KEY, url.trim());
+  const trimmed = url.trim();
+  localStorage.setItem(GOOGLE_SHEET_URL_KEY, trimmed);
+  if (trimmed.length > 0) {
+    setDatabaseConnected(true);
+  }
 }
 
 const ADMIN_PASSWORD_KEY = 'tcc_admin_pin_password';
@@ -286,11 +295,13 @@ const DB_STATUS_KEY = 'tcc_database_status_active';
 
 export function isDatabaseConnected(): boolean {
   try {
+    const hasUrl = hasGoogleSheetUrlConfigured();
+    if (!hasUrl) return false;
     const val = localStorage.getItem(DB_STATUS_KEY);
     if (val === 'false') return false;
     return true;
   } catch (e) {
-    return true;
+    return false;
   }
 }
 

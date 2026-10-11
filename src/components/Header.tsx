@@ -10,6 +10,7 @@ interface HeaderProps {
   setDarkMode: (val: boolean) => void;
   onOpenGoogleSheetModal: () => void;
   isSheetConnected: boolean;
+  hasSheetUrl: boolean;
   onToggleConnection?: () => void;
   onPrint: () => void;
 }
@@ -22,6 +23,7 @@ export const Header: React.FC<HeaderProps> = ({
   setDarkMode,
   onOpenGoogleSheetModal,
   isSheetConnected,
+  hasSheetUrl,
   onToggleConnection,
   onPrint,
 }) => {
@@ -82,36 +84,46 @@ export const Header: React.FC<HeaderProps> = ({
             </span>
           </button>
 
-          {/* Status Indikator Database (ON Hijau / OFF Merah) */}
+          {/* Status Indikator Database (ON Hijau / OFF Merah / BELUM TERHUBUNG Amber) */}
           <div className="flex items-center gap-1">
             <button
               type="button"
-              onClick={onToggleConnection}
+              onClick={hasSheetUrl ? onToggleConnection : onOpenGoogleSheetModal}
               className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
-                isSheetConnected
+                !hasSheetUrl
+                  ? 'bg-amber-50 text-amber-900 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-700 hover:bg-amber-100/80 animate-pulse'
+                  : isSheetConnected
                   ? 'bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 hover:bg-emerald-100/70'
                   : 'bg-rose-50 text-rose-800 border-rose-300 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800 hover:bg-rose-100/70'
               }`}
               title={
-                isSheetConnected
+                !hasSheetUrl
+                  ? 'Database Google Sheet belum dikonfigurasi di Web App ini. Klik untuk memasukkan URL Webhook Google Apps Script.'
+                  : isSheetConnected
                   ? 'Status Database: ON (Tersambung). Klik untuk beralih ke OFF.'
                   : 'Status Database: OFF (Terputus). Klik untuk menyambungkan kembali (ON).'
               }
             >
               <span
                 className={`w-2 h-2 rounded-full ${
-                  isSheetConnected ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'
+                  !hasSheetUrl
+                    ? 'bg-amber-500'
+                    : isSheetConnected
+                    ? 'bg-emerald-500 animate-pulse'
+                    : 'bg-rose-500'
                 }`}
               />
               <span className="hidden sm:inline font-medium">Google Sheet</span>
               <span
                 className={`text-[11px] font-extrabold tracking-wide ${
-                  isSheetConnected
+                  !hasSheetUrl
+                    ? 'text-amber-700 dark:text-amber-400'
+                    : isSheetConnected
                     ? 'text-emerald-600 dark:text-emerald-400'
                     : 'text-rose-600 dark:text-rose-400'
                 }`}
               >
-                {isSheetConnected ? 'ON' : 'OFF'}
+                {!hasSheetUrl ? 'BELUM TERHUBUNG' : isSheetConnected ? 'ON' : 'OFF'}
               </span>
             </button>
 

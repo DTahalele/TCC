@@ -82,6 +82,7 @@ export const GoogleSheetModal: React.FC<GoogleSheetModalProps> = ({
     setTestResult(null);
     try {
       setGoogleSheetUrl(url);
+      onUrlUpdated();
       const res = await sendTestRowToGoogleSheet();
       setTestResult({
         text: res.message,
@@ -313,7 +314,7 @@ export const GoogleSheetModal: React.FC<GoogleSheetModalProps> = ({
                     Verifikasi Password Admin
                   </h4>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                    Masukkan password admin untuk menyimpan perubahan konfigurasi database.
+                    Masukkan password admin untuk menyimpan perubahan database (Password bawaan: <strong className="text-emerald-700 dark:text-emerald-400 font-mono">admin</strong>).
                   </p>
                 </div>
               </div>

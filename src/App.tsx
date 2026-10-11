@@ -25,6 +25,7 @@ import {
   saveOrUpdateRecord,
   deleteStoredRecord,
   getGoogleSheetUrl,
+  hasGoogleSheetUrlConfigured,
   isDatabaseConnected,
   setDatabaseConnected,
 } from './utils/storage';
@@ -101,10 +102,32 @@ export default function App() {
     }
   }, [toastMessage]);
 
+  const [hasSheetUrl, setHasSheetUrl] = useState<boolean>(() => hasGoogleSheetUrlConfigured());
   const [isSheetConnected, setIsSheetConnected] = useState<boolean>(() => isDatabaseConnected());
+
+  const handleUrlUpdated = () => {
+    const configured = hasGoogleSheetUrlConfigured();
+    setHasSheetUrl(configured);
+    setIsSheetConnected(isDatabaseConnected());
+    setToastMessage({
+      text: configured
+        ? '✓ Konfigurasi URL Google Sheet berhasil diperbarui & tersambung!'
+        : 'Konfigurasi Google Sheet telah diperbarui.',
+      type: 'success',
+    });
+  };
 
   // Toggle Database Connection Status (ON / OFF)
   const handleToggleSheetConnection = () => {
+    if (!hasGoogleSheetUrlConfigured()) {
+      setIsGoogleSheetModalOpen(true);
+      setToastMessage({
+        text: 'URL Web App Google Apps Script belum dikonfigurasi. Masukkan URL terlebih dahulu.',
+        type: 'error',
+      });
+      return;
+    }
+
     const nextState = !isSheetConnected;
     setIsSheetConnected(nextState);
     setDatabaseConnected(nextState);
@@ -358,15 +381,22 @@ export default function App() {
       });
 
       // 4. Feedback message
-      if (isUpdate) {
-        setToastMessage({
-          text: `✓ Berhasil memperbarui data ${formData.Full_Name} (${formData.MemberID}). Baris pada database telah di-UPDATE tanpa duplikasi row!`,
-          type: 'success',
-        });
+      if (syncResult.success) {
+        if (isUpdate) {
+          setToastMessage({
+            text: `✓ Berhasil memperbarui data ${formData.Full_Name} (${formData.MemberID}) di Arsip dan Google Sheet!`,
+            type: 'success',
+          });
+        } else {
+          setToastMessage({
+            text: `✓ Data baru ${formData.Full_Name} (${formData.MemberID}) berhasil disimpan di Arsip dan disinkronkan ke Google Sheet!`,
+            type: 'success',
+          });
+        }
       } else {
         setToastMessage({
-          text: `✓ Data baru untuk ${formData.Full_Name} (${formData.MemberID}) berhasil disimpan sebagai record baru!`,
-          type: 'success',
+          text: `⚠️ Data ${formData.Full_Name} tersimpan di Arsip lokal, namun BELUM terkirim ke Google Sheet: ${syncResult.message}`,
+          type: 'error',
         });
       }
 
@@ -408,6 +438,15 @@ export default function App() {
 
   // Sync entire Archive directly to Google Sheet database without opening any setting page, preventing duplicate rows
   const handleSyncAllToDatabase = async () => {
+    if (!hasGoogleSheetUrlConfigured()) {
+      setIsGoogleSheetModalOpen(true);
+      setToastMessage({
+        text: 'URL Web App Google Apps Script belum dikonfigurasi di Web App ini. Masukkan URL pada jendela pengaturan.',
+        type: 'error',
+      });
+      return;
+    }
+
     if (!isSheetConnected) {
       setToastMessage({
         text: 'Status Database sedang OFF. Klik tombol status "Google Sheet OFF" di header untuk mengaktifkannya (ON) terlebih dahulu.',
@@ -439,7 +478,7 @@ export default function App() {
         });
       } else {
         setToastMessage({
-          text: res.message,
+          text: `✕ ${res.message}`,
           type: 'error',
         });
       }
@@ -520,6 +559,7 @@ export default function App() {
         setDarkMode={setDarkMode}
         onOpenGoogleSheetModal={() => setIsGoogleSheetModalOpen(true)}
         isSheetConnected={isSheetConnected}
+        hasSheetUrl={hasSheetUrl}
         onToggleConnection={handleToggleSheetConnection}
         onPrint={handlePrint}
       />
@@ -540,6 +580,7 @@ export default function App() {
               onSyncToDatabase={handleSyncAllToDatabase}
               isSyncing={isSyncing}
               isSheetConnected={isSheetConnected}
+              hasSheetUrl={hasSheetUrl}
               onOpenGoogleSheetModal={() => setIsGoogleSheetModalOpen(true)}
             />
           </div>
@@ -571,6 +612,7 @@ export default function App() {
               memberId={formData.MemberID}
               testDate={formData.Test_Date}
               coach={formData.Coaches}
+              isEditing={isEditing}
               onChange={handleFieldChange}
               onGenerateMemberId={handleGenerateMemberId}
             />
@@ -697,12 +739,7 @@ export default function App() {
       <GoogleSheetModal
         isOpen={isGoogleSheetModalOpen}
         onClose={() => setIsGoogleSheetModalOpen(false)}
-        onUrlUpdated={() => {
-          setToastMessage({
-            text: 'Konfigurasi Google Sheet berhasil diperbarui!',
-            type: 'success',
-          });
-        }}
+        onUrlUpdated={handleUrlUpdated}
       />
 
       {/* Modal: Member TCC (Sesi Baru) Picker */}
@@ -725,6 +762,7 @@ export default function App() {
         onSyncToDatabase={handleSyncAllToDatabase}
         isSyncing={isSyncing}
         isSheetConnected={isSheetConnected}
+        hasSheetUrl={hasSheetUrl}
         onOpenGoogleSheetModal={() => setIsGoogleSheetModalOpen(true)}
       />
 

@@ -33,6 +33,7 @@ interface ArchiveModalProps {
   onSyncToDatabase: () => Promise<void>;
   isSyncing: boolean;
   isSheetConnected: boolean;
+  hasSheetUrl: boolean;
   onOpenGoogleSheetModal: () => void;
 }
 
@@ -47,6 +48,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
   onSyncToDatabase,
   isSyncing,
   isSheetConnected,
+  hasSheetUrl,
   onOpenGoogleSheetModal,
 }) => {
   const [search, setSearch] = useState('');
@@ -148,6 +150,28 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
           </span>
         </div>
       </div>
+
+      {/* Database Connection Notice Banner (jika belum tersambung ke Google Sheet) */}
+      {!hasSheetUrl && (
+        <div className="mx-5 sm:mx-7 mt-4 p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-amber-900 dark:text-amber-200 animate-in fade-in duration-200">
+          <div className="flex items-start sm:items-center gap-2.5">
+            <Database className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5 sm:mt-0" />
+            <div>
+              <span className="font-bold block sm:inline">Google Sheet Belum Terhubung di Browser Ini: </span>
+              <span className="text-amber-800 dark:text-amber-300">
+                Data Anda tersimpan aman di Arsip lokal ini. Hubungkan URL Google Apps Script agar dapat menyinkronkan data langsung ke spreadsheet Google.
+              </span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onOpenGoogleSheetModal}
+            className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shrink-0 transition-colors shadow-xs"
+          >
+            Hubungkan Sekarang
+          </button>
+        </div>
+      )}
 
       {/* 3. Action Toolbar: Spacious Search & Filters */}
       <div className="p-5 sm:px-7 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3.5">

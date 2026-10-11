@@ -11,6 +11,7 @@ interface PersonalDataSectionProps {
   memberId: string;
   testDate: string;
   coach: string;
+  isEditing?: boolean;
   onChange: (field: string, value: any) => void;
   onGenerateMemberId: () => void;
 }
@@ -24,6 +25,7 @@ export const PersonalDataSection: React.FC<PersonalDataSectionProps> = ({
   memberId,
   testDate,
   coach,
+  isEditing = false,
   onChange,
   onGenerateMemberId,
 }) => {
@@ -54,28 +56,70 @@ export const PersonalDataSection: React.FC<PersonalDataSectionProps> = ({
         )}
       </div>
 
-      {/* 1. Kategori Customer (Otomatis Plain Text sesuai pilihan di atas) */}
-      <div className="space-y-1">
+      {/* 1. Kategori Customer (Otomatis Plain Text saat pengisian baru / Dapat diubah saat Mode Edit) */}
+      <div className="space-y-1.5">
         <div className="flex items-center justify-between text-xs">
           <label className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
             <span>Kategori Customer</span>
             <span className="text-rose-500">*</span>
-            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">✓ Otomatis</span>
+            {isEditing ? (
+              <span className="text-[10px] text-amber-700 dark:text-amber-400 font-semibold bg-amber-50 dark:bg-amber-950/60 px-2 py-0.5 rounded-full border border-amber-200 dark:border-amber-800">
+                Mode Edit: Dapat Diubah
+              </span>
+            ) : (
+              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">✓ Otomatis</span>
+            )}
           </label>
           <span className="text-slate-400 text-[11px]">
-            Otomatis terisi dari pilihan tombol atas
+            {isEditing
+              ? 'Pilihan khusus admin untuk mengubah Trial User menjadi Member TCC'
+              : 'Otomatis terisi dari pilihan tombol atas'}
           </span>
         </div>
 
-        {/* Format Plain Text (tanpa box/button) */}
-        <div className="py-1">
-          <span className="text-sm sm:text-base font-bold text-slate-900 dark:text-white tracking-wide">
-            {customerType === 'member' ? 'Member TCC' : 'Trial User'}
-          </span>
-          <span className="ml-2 text-xs font-normal text-slate-500 dark:text-slate-400">
-            {customerType === 'member' ? '(Member Regular TCC)' : '(1x Sesi / Trial User)'}
-          </span>
-        </div>
+        {isEditing ? (
+          /* Opsi Pilihan saat Mode Edit (khususnya untuk upgrade Trial User ke Member TCC) */
+          <div className="flex flex-wrap items-center gap-2.5 pt-1">
+            <button
+              type="button"
+              onClick={() => onChange('Customer_type', 'trial')}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                customerType === 'trial'
+                  ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 border-slate-900 dark:border-white shadow-xs'
+                  : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
+              }`}
+            >
+              Trial User (1x Sesi / Trial)
+            </button>
+            <button
+              type="button"
+              onClick={() => onChange('Customer_type', 'member')}
+              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                customerType === 'member'
+                  ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs ring-2 ring-emerald-500/30'
+                  : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100/80'
+              }`}
+            >
+              <span>Member TCC (Regular TCC)</span>
+              {customerType === 'member' && <Check className="w-3.5 h-3.5" />}
+            </button>
+            {customerType === 'member' && (
+              <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
+                ✓ Peserta akan diperbarui sebagai Member TCC
+              </span>
+            )}
+          </div>
+        ) : (
+          /* Format Plain Text saat bukan mode edit (tanpa box/button) */
+          <div className="py-1">
+            <span className="text-sm sm:text-base font-bold text-slate-900 dark:text-white tracking-wide">
+              {customerType === 'member' ? 'Member TCC' : 'Trial User'}
+            </span>
+            <span className="ml-2 text-xs font-normal text-slate-500 dark:text-slate-400">
+              {customerType === 'member' ? '(Member Regular TCC)' : '(1x Sesi / Trial User)'}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* 2. Full Name */}
