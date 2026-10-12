@@ -20,11 +20,20 @@ export const GoogleSheetModal: React.FC<GoogleSheetModalProps> = ({
   hasSheetUrl = false,
   onToggleConnection,
 }) => {
-  const initialUrl = getGoogleSheetUrl();
-  const [url, setUrl] = useState(initialUrl);
+  const [url, setUrl] = useState(getGoogleSheetUrl());
   const [copied, setCopied] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ text: string; success: boolean } | null>(null);
+
+  // Sync state whenever modal opens
+  React.useEffect(() => {
+    if (isOpen) {
+      setUrl(getGoogleSheetUrl());
+      setTestResult(null);
+      setAuthError('');
+      setNewPasswordInput('');
+    }
+  }, [isOpen]);
 
   // Password authorization state for saving changes
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -40,9 +49,23 @@ export const GoogleSheetModal: React.FC<GoogleSheetModalProps> = ({
 
   // Click Simpan Pengaturan triggers password verification
   const handleInitiateSave = () => {
-    // If no changes were made and url is identical, just close
-    if (url.trim() === initialUrl.trim() && !newPasswordInput.trim()) {
-      onClose();
+    if (!url.trim()) {
+      setTestResult({
+        text: 'Silakan masukkan / tempelkan URL Web App Google Apps Script terlebih dahulu di kolom input di bawah.',
+        success: false,
+      });
+      return;
+    }
+    const currentStoredUrl = getGoogleSheetUrl();
+    // If no changes were made and url is identical, inform and close
+    if (url.trim() === currentStoredUrl.trim() && !newPasswordInput.trim()) {
+      setTestResult({
+        text: '✓ Pengaturan URL sudah aktif dan tersimpan di perangkat ini.',
+        success: true,
+      });
+      setTimeout(() => {
+        onClose();
+      }, 1000);
       return;
     }
     setAuthError('');
@@ -192,6 +215,21 @@ export const GoogleSheetModal: React.FC<GoogleSheetModalProps> = ({
             </button>
           </div>
 
+          {/* Penjelasan jika belum terhubung di perangkat ini (Misal HP Android) */}
+          {!hasSheetUrl && (
+            <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/80 flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+              <div className="text-xs text-amber-900 dark:text-amber-200 space-y-1">
+                <p className="font-bold">
+                  Status di HP ini "BELUM TERHUBUNG" padahal di Laptop sudah Tersambung?
+                </p>
+                <p className="text-[11px] leading-relaxed text-amber-800 dark:text-amber-300">
+                  URL database tersimpan di penyimpanan browser (localStorage) masing-masing perangkat. Agar HP ini ikut tersambung, cukup <strong>tempelkan URL Google Apps Script</strong> Anda di kotak input di bawah lalu klik <strong>"Simpan Pengaturan"</strong> (Password: <code className="font-mono font-bold">admin</code>).
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Webhook Input & Interactive Test Buttons */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
@@ -203,13 +241,48 @@ export const GoogleSheetModal: React.FC<GoogleSheetModalProps> = ({
                 Perubahan memerlukan verifikasi Password
               </span>
             </div>
-            <input
-              type="url"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder="https://script.google.com/macros/s/AKfycb.../exec"
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
-            />
+            <div className="relative">
+              <input
+                type="url"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                placeholder="https://script.google.com/macros/s/AKfycb.../exec"
+                className="w-full px-3.5 py-2.5 pr-20 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
+              />
+              {/* Tombol Cepat Salin / Tempel */}
+              <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                {url ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(url);
+                      setTestResult({ text: '✓ URL Webhook berhasil disalin! Kirim ke HP/perangkat lain untuk dihubungkan.', success: true });
+                    }}
+                    title="Salin URL ini untuk dikirim ke HP"
+                    className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 text-[10px] font-bold flex items-center gap-1"
+                  >
+                    <Copy className="w-3 h-3" />
+                    <span className="hidden sm:inline">Salin</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        const clipText = await navigator.clipboard.readText();
+                        if (clipText) setUrl(clipText.trim());
+                      } catch {
+                        // ignore
+                      }
+                    }}
+                    title="Tempel dari Clipboard"
+                    className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 text-[10px] font-bold flex items-center gap-1"
+                  >
+                    <span>Paste</span>
+                  </button>
+                )}
+              </div>
+            </div>
 
             <div className="flex flex-wrap gap-2 pt-1">
               <button
