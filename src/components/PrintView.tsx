@@ -7,8 +7,17 @@ interface PrintViewProps {
 }
 
 export const PrintView: React.FC<PrintViewProps> = ({ record }) => {
+  const customerName =
+    record.Full_Name ||
+    (record as any).fullName ||
+    (record as any).Nama ||
+    (record as any).nama ||
+    (record as any).Name ||
+    (record as any).name ||
+    'Nama Peserta';
+
   return (
-    <div className="hidden print:block text-black bg-white p-8 max-w-[210mm] mx-auto text-xs font-sans print-container">
+    <div className="hidden print:block text-black bg-white p-6 max-w-[210mm] mx-auto text-xs font-sans print-container">
       {/* Print Header */}
       <div className="border-b-2 border-black pb-4 mb-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -42,7 +51,7 @@ export const PrintView: React.FC<PrintViewProps> = ({ record }) => {
         <div className="grid grid-cols-4 gap-2 text-[11px]">
           <div>
             <span className="text-slate-600 block">Nama Lengkap:</span>
-            <span className="font-bold">{record.Full_Name || '-'}</span>
+            <span className="font-bold">{customerName}</span>
           </div>
           <div>
             <span className="text-slate-600 block">Gender:</span>
@@ -150,7 +159,7 @@ export const PrintView: React.FC<PrintViewProps> = ({ record }) => {
         <div>
           <p className="mb-12">Peserta / Member Assessment</p>
           <div className="border-t border-black w-48 mx-auto font-bold pt-1">
-            ( {record.Full_Name || 'Nama Peserta'} )
+            ( {customerName} )
           </div>
         </div>
         <div>

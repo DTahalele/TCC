@@ -392,15 +392,15 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                     <span>Edit Data</span>
                   </button>
 
-                  {/* Cetak PDF */}
+                  {/* Cetak PDF Score Card Khusus Peserta Ini */}
                   <button
                     type="button"
                     onClick={() => onPrintRecord(r)}
-                    className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750 transition-colors shadow-2xs"
-                    title="Cetak PDF Score Card peserta ini"
+                    className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-750 transition-colors shadow-2xs"
+                    title={`Cetak lembar PDF Score Card resmi hanya khusus untuk ${getRecordName(r)}`}
                   >
-                    <Printer className="w-3.5 h-3.5 text-slate-500" />
-                    <span className="hidden sm:inline">Cetak</span>
+                    <Printer className="w-3.5 h-3.5 text-slate-600 dark:text-slate-300" />
+                    <span>Cetak PDF</span>
                   </button>
 
                   {/* Hapus Record */}

@@ -37,6 +37,7 @@ import { ProgressBar } from './components/ProgressBar';
 import { PersonalDataSection } from './components/PersonalDataSection';
 import { BodyCompositionSection } from './components/BodyCompositionSection';
 import { ScoringSection, ScoreItemConfig } from './components/ScoringSection';
+import { CoachNotesSection } from './components/CoachNotesSection';
 import { DataSummarySection } from './components/DataSummarySection';
 import { DisclaimerSection } from './components/DisclaimerSection';
 import { FooterActions } from './components/FooterActions';
@@ -78,6 +79,9 @@ export default function App() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'info' | 'error' } | null>(null);
+
+  // Dedicated state for isolated single-customer scorecard printing
+  const [recordToPrint, setRecordToPrint] = useState<ScoreCardRecord | null>(null);
 
   // Initialize records on mount
   useEffect(() => {
@@ -310,6 +314,7 @@ export default function App() {
       ...record,
       entry_type: 'edit',
     });
+    setRecordToPrint(record);
     setCurrentTab('form');
     setToastMessage({
       text: `Mode Edit Aktif untuk ${record.Full_Name} (${record.MemberID}). Data akan meng-update baris database yang sama tanpa menambah baris baru.`,
@@ -416,17 +421,28 @@ export default function App() {
     }
   };
 
-  // Print PDF score card
+  // Print PDF score card for currently active customer record
   const handlePrint = () => {
-    window.print();
+    if (currentTab === 'archive' && !isEditing) {
+      setToastMessage({
+        text: 'Silakan klik tombol "Cetak PDF" pada baris nama peserta yang ingin Anda cetak di daftar Arsip.',
+        type: 'info',
+      });
+      return;
+    }
+    setRecordToPrint(formData);
+    setTimeout(() => {
+      window.print();
+    }, 120);
   };
 
-  // Print specific record from archive
+  // Print specific record from archive (exclusively prints this customer's score card)
   const handlePrintSpecificRecord = (record: ScoreCardRecord) => {
+    setRecordToPrint(record);
     setFormData(record);
     setTimeout(() => {
       window.print();
-    }, 150);
+    }, 120);
   };
 
   // Delete record from archive
@@ -528,7 +544,7 @@ export default function App() {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 max-w-md animate-in slide-in-from-bottom-5 duration-200">
+        <div className="fixed bottom-6 right-4 sm:right-6 left-4 sm:left-auto z-50 max-w-md animate-in slide-in-from-bottom-5 duration-200 safe-bottom">
           <div
             className={`px-4 py-3 rounded-2xl shadow-xl text-xs sm:text-sm font-semibold border flex items-center justify-between gap-3 ${
               toastMessage.type === 'success'
@@ -565,7 +581,7 @@ export default function App() {
       />
 
       {/* Main Container */}
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6 print:hidden">
         {currentTab === 'archive' ? (
           /* Spacious Full-Page Archive View */
           <div className="space-y-4">
@@ -694,6 +710,12 @@ export default function App() {
               onScoreSelect={handleScoreSelect}
             />
 
+            {/* Section: CATATAN TAMBAHAN COACH / INSTRUKTUR (Free Long Text) */}
+            <CoachNotesSection
+              notes={formData.notes}
+              onChange={(text) => handleFieldChange('notes', text)}
+            />
+
             {/* Section 6: DATA SUMMARY */}
             <DataSummarySection
               memberId={formData.MemberID}
@@ -713,8 +735,6 @@ export default function App() {
                   formData.score_coordination,
                 ]).category
               }
-              notes={formData.notes}
-              onNotesChange={(text) => handleFieldChange('notes', text)}
             />
 
             {/* Section 7: DISCLAIMER */}
@@ -733,7 +753,7 @@ export default function App() {
       </main>
 
       {/* Printable Score Card Layout (Visible when window.print() is executed) */}
-      <PrintView record={formData} />
+      <PrintView record={recordToPrint || formData} />
 
       {/* Modal: Google Sheet Database Setup */}
       <GoogleSheetModal

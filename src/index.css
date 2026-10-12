@@ -1,9 +1,51 @@
 @import "tailwindcss";
 
 @layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
   body {
     font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
+}
+
+/* iOS Safari: Prevent unwanted auto-zooming when tapping inputs while keeping clean design */
+@media screen and (max-width: 768px) {
+  input[type="text"],
+  input[type="number"],
+  input[type="date"],
+  input[type="password"],
+  input[type="search"],
+  input[type="email"],
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* iOS Safari date picker normalization */
+input[type="date"] {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* iOS Safe Area Utilities */
+.safe-bottom {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+.safe-top {
+  padding-top: max(0.75rem, env(safe-area-inset-top));
+}
+
+/* Custom scrollbar with iOS touch support */
+* {
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Custom scrollbar */
@@ -24,21 +66,49 @@
 
 /* Print Styles */
 @media print {
+  /* Clean white background and black text */
+  html,
   body {
+    background: #ffffff !important;
     background-color: #ffffff !important;
     color: #000000 !important;
-  }
-  header, footer, nav, button, .no-print {
-    display: none !important;
-  }
-  .print-container {
-    display: block !important;
-    width: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
+
+  /* Completely hide all interactive web application UI elements */
+  header,
+  footer,
+  nav,
+  main,
+  button,
+  .no-print,
+  [role="dialog"],
+  .fixed,
+  .sticky {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  /* Exclusively display the single customer's printable Score Card */
+  .print-container {
+    display: block !important;
+    visibility: visible !important;
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
   @page {
     size: A4 portrait;
-    margin: 12mm;
+    margin: 10mm;
   }
 }

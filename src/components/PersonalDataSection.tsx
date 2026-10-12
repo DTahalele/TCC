@@ -67,7 +67,7 @@ export const PersonalDataSection: React.FC<PersonalDataSectionProps> = ({
                 Mode Edit: Dapat Diubah
               </span>
             ) : (
-              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">✓ Otomatis</span>
+              <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">✓</span>
             )}
           </label>
           <span className="text-slate-400 text-[11px]">
@@ -128,7 +128,7 @@ export const PersonalDataSection: React.FC<PersonalDataSectionProps> = ({
           <span>Full Name</span>
           <span className="text-rose-500">*</span>
           {fullName.trim() && (
-            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">✓ Terisi</span>
+            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">✓</span>
           )}
         </label>
         <input
@@ -151,7 +151,7 @@ export const PersonalDataSection: React.FC<PersonalDataSectionProps> = ({
         <div className="space-y-1.5">
           <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
             <span>Gender</span>
-            {gender && <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">✓ Terisi</span>}
+            {gender && <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">✓</span>}
           </label>
           <div className="grid grid-cols-2 gap-2">
             <button
@@ -184,7 +184,7 @@ export const PersonalDataSection: React.FC<PersonalDataSectionProps> = ({
           <div className="flex items-center justify-between">
             <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
               <span>TCC Membership ID</span>
-              {memberId && <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">✓ Terisi</span>}
+              {memberId && <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">✓</span>}
             </label>
             <button
               type="button"
@@ -217,7 +217,7 @@ export const PersonalDataSection: React.FC<PersonalDataSectionProps> = ({
         <div className="space-y-1.5">
           <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
             <span>Date of Birth</span>
-            {dob && <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">✓ Terisi</span>}
+            {dob && <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">✓</span>}
           </label>
           <div className="relative">
             <input
@@ -236,8 +236,8 @@ export const PersonalDataSection: React.FC<PersonalDataSectionProps> = ({
         {/* Age (Auto-calculated) */}
         <div className="space-y-1.5">
           <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-            <span>Age (Otomatis dari DoB)</span>
-            {age !== null && <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">✓ Terisi</span>}
+            <span>Age (DoB)</span>
+            {age !== null && <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">✓</span>}
           </label>
           <div className="relative">
             <input
@@ -264,7 +264,7 @@ export const PersonalDataSection: React.FC<PersonalDataSectionProps> = ({
         <div className="space-y-1.5">
           <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
             <span>Date of Test</span>
-            {testDate && <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">✓ Terisi</span>}
+            {testDate && <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">✓</span>}
           </label>
           <input
             type="date"
@@ -282,7 +282,7 @@ export const PersonalDataSection: React.FC<PersonalDataSectionProps> = ({
         <div className="space-y-1.5">
           <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
             <span>Coach / Instruktur Assessment</span>
-            {coach && <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">✓ Terisi</span>}
+            {coach && <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">✓</span>}
           </label>
           <select
             value={coach}

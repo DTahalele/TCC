@@ -103,8 +103,8 @@ const ScoreItemCard: React.FC<ScoreItemCardProps> = ({ item, onSelect }) => {
             {item.label}
           </span>
           {isFilled && (
-            <span className="text-emerald-600 dark:text-emerald-400 text-[10px] font-semibold whitespace-nowrap">
-              ✓ Terisi
+            <span className="text-emerald-600 dark:text-emerald-400 text-xs font-bold whitespace-nowrap">
+              ✓
             </span>
           )}
         </div>

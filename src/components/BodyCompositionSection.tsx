@@ -86,7 +86,7 @@ export const BodyCompositionSection: React.FC<BodyCompositionSectionProps> = ({
             BODY MEASUREMENTS (CM)
           </h4>
           <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-            {filledMeasurements} / 10 Terisi
+            {filledMeasurements} / 10
           </span>
         </div>
 
@@ -178,7 +178,7 @@ export const BodyCompositionSection: React.FC<BodyCompositionSectionProps> = ({
               <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">
                 <span>Body Fat %</span>
                 {bodyFat !== null && bodyFat > 0 && (
-                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">✓ Terisi</span>
+                  <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">✓</span>
                 )}
               </label>
             </div>
@@ -208,7 +208,7 @@ export const BodyCompositionSection: React.FC<BodyCompositionSectionProps> = ({
               <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">
                 <span>Muscle Mass %</span>
                 {muscleMass !== null && muscleMass > 0 && (
-                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">✓ Terisi</span>
+                  <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">✓</span>
                 )}
               </label>
             </div>
@@ -239,7 +239,7 @@ export const BodyCompositionSection: React.FC<BodyCompositionSectionProps> = ({
                 <span>Height (cm)</span>
                 <span className="text-rose-500">*</span>
                 {height !== null && height > 0 && (
-                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">✓ Terisi</span>
+                  <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">✓</span>
                 )}
               </label>
             </div>
@@ -271,7 +271,7 @@ export const BodyCompositionSection: React.FC<BodyCompositionSectionProps> = ({
                 <span>Weight (kg)</span>
                 <span className="text-rose-500">*</span>
                 {weight !== null && weight > 0 && (
-                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">✓ Terisi</span>
+                  <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">✓</span>
                 )}
               </label>
             </div>
@@ -303,7 +303,7 @@ export const BodyCompositionSection: React.FC<BodyCompositionSectionProps> = ({
           <div className="p-3.5 rounded-xl border bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 flex items-center justify-between">
             <div>
               <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                BMI (Otomatis Real-Time)
+                BMI (Real-Time)
               </p>
               <div className="flex items-baseline gap-1 mt-0.5">
                 <span className="text-2xl font-extrabold text-slate-900 dark:text-white font-mono">
@@ -319,7 +319,7 @@ export const BodyCompositionSection: React.FC<BodyCompositionSectionProps> = ({
           <div className={`p-3.5 rounded-xl border flex items-center justify-between transition-colors ${bmiStyle.bg}`}>
             <div>
               <p className="text-[11px] font-bold uppercase tracking-wider opacity-80">
-                Classification BMI (Otomatis)
+                Classification BMI
               </p>
               <div className="flex items-center gap-2 mt-1">
                 <span className={`w-2.5 h-2.5 rounded-full ${bmiStyle.dot}`} />

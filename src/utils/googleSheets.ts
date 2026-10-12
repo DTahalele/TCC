@@ -327,6 +327,377 @@ export async function sendTestRowToGoogleSheet(): Promise<SyncResult> {
   }
 }
 
+export interface DiagnosticProbeResult {
+  probeName: string;
+  method: string;
+  mode: string;
+  httpStatus?: number;
+  httpStatusText?: string;
+  durationMs: number;
+  success: boolean;
+  responseTextSnippet?: string;
+  corsBlocked?: boolean;
+  timeout?: boolean;
+  error?: string;
+}
+
+export interface GoogleAppsScriptDiagnosticReport {
+  timestamp: string;
+  targetUrl: string;
+  isAndroid: boolean;
+  isMobile: boolean;
+  isOnline: boolean;
+  userAgent: string;
+  probes: DiagnosticProbeResult[];
+  detectedIssue:
+    | 'NONE'
+    | 'EMPTY_URL'
+    | 'INVALID_URL_SCHEME'
+    | 'DEV_URL_INSTEAD_OF_EXEC'
+    | 'CORS_OR_AUTH_RESTRICTED'
+    | 'NETWORK_TIMEOUT'
+    | 'NETWORK_OFFLINE'
+    | 'UNKNOWN_ERROR';
+  summaryMessage: string;
+  technicalDetails: string;
+  recommendedAction: string;
+}
+
+/**
+ * Diagnostic tool function that logs specific response (HTTP status code and text)
+ * from the Google App Script endpoint to identify CORS, network timeouts,
+ * or mobile device differences.
+ */
+export async function runGoogleSheetDiagnostics(
+  customUrl?: string,
+  timeoutMs: number = 10000
+): Promise<GoogleAppsScriptDiagnosticReport> {
+  const targetUrl = (customUrl || getGoogleSheetUrl() || '').trim();
+  const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : 'Unknown';
+  const isAndroid = /android/i.test(userAgent);
+  const isMobile = /mobile|android|iphone|ipad/i.test(userAgent);
+  const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
+
+  const probes: DiagnosticProbeResult[] = [];
+  const startTime = Date.now();
+
+  console.group(`🔍 [TCC GOOGLE APPS SCRIPT DIAGNOSTIC] - ${new Date().toLocaleTimeString()}`);
+  console.info('Diagnosing Google Apps Script Endpoint:', targetUrl || '(KOSONG)');
+  console.info('Client Environment:', {
+    isAndroid,
+    isMobile,
+    isOnline,
+    userAgent,
+    timestamp: new Date().toISOString(),
+  });
+
+  // Check 1: Empty or Invalid URL format
+  if (!targetUrl) {
+    const report: GoogleAppsScriptDiagnosticReport = {
+      timestamp: new Date().toISOString(),
+      targetUrl: '',
+      isAndroid,
+      isMobile,
+      isOnline,
+      userAgent,
+      probes: [],
+      detectedIssue: 'EMPTY_URL',
+      summaryMessage: 'URL Google Apps Script belum diisi di perangkat ini.',
+      technicalDetails: 'Target endpoint URL string is empty or undefined in storage.',
+      recommendedAction:
+        'Masukkan URL Web App Google Apps Script (berakhiran /exec) di kolom pengaturan lalu simpan.',
+    };
+    console.warn('Diagnostic Result: URL is empty.');
+    console.groupEnd();
+    return report;
+  }
+
+  const isDevUrl = targetUrl.endsWith('/dev');
+  const isExecUrl = targetUrl.includes('/macros/s/') && targetUrl.endsWith('/exec');
+  const hasValidScheme = targetUrl.startsWith('https://script.google.com/');
+
+  // Probe 1: HTTP GET Probe (Testing Endpoint Readability, HTTP Status Code & Text)
+  const probe1Start = Date.now();
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+    const getRes = await fetch(targetUrl, {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json, text/plain, */*',
+      },
+      redirect: 'follow',
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
+
+    const probe1Duration = Date.now() - probe1Start;
+    const bodyText = await getRes.text();
+    const snippet = bodyText.slice(0, 400);
+
+    probes.push({
+      probeName: 'Probe 1: HTTP GET (CORS enabled)',
+      method: 'GET',
+      mode: 'cors',
+      httpStatus: getRes.status,
+      httpStatusText: getRes.statusText,
+      durationMs: probe1Duration,
+      success: getRes.status >= 200 && getRes.status < 400,
+      responseTextSnippet: snippet,
+      corsBlocked: false,
+      timeout: false,
+    });
+
+    console.log(`[Probe 1 GET] Status: ${getRes.status} ${getRes.statusText} (${probe1Duration}ms)`);
+    console.log('[Probe 1 GET] Response Body:', snippet);
+  } catch (err: unknown) {
+    const probe1Duration = Date.now() - probe1Start;
+    const errorObj = err as Error;
+    const isTimeout = errorObj.name === 'AbortError';
+    const isCors =
+      !isTimeout &&
+      (errorObj instanceof TypeError || errorObj.message.toLowerCase().includes('fetch'));
+
+    probes.push({
+      probeName: 'Probe 1: HTTP GET (CORS enabled)',
+      method: 'GET',
+      mode: 'cors',
+      durationMs: probe1Duration,
+      success: false,
+      timeout: isTimeout,
+      corsBlocked: isCors,
+      error: errorObj.message || 'Gagal melakukan fetch GET',
+      responseTextSnippet: isTimeout
+        ? 'Request timeout (>10s)'
+        : isCors
+        ? 'Akses diblokir oleh CORS atau redirect Google Auth'
+        : errorObj.message,
+    });
+
+    console.warn(`[Probe 1 GET Error] (${probe1Duration}ms):`, errorObj.message);
+  }
+
+  // Probe 2: HTTP POST Probe with text payload
+  const probe2Start = Date.now();
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+    const postPayload = JSON.stringify({
+      action: 'DIAGNOSTIC_PING',
+      timestamp: new Date().toISOString(),
+      clientInfo: { isAndroid, isMobile },
+    });
+
+    const postRes = await fetch(targetUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8',
+      },
+      body: postPayload,
+      redirect: 'follow',
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
+
+    const probe2Duration = Date.now() - probe2Start;
+    const postBodyText = await postRes.text();
+    const postSnippet = postBodyText.slice(0, 400);
+
+    probes.push({
+      probeName: 'Probe 2: HTTP POST (CORS follow redirect)',
+      method: 'POST',
+      mode: 'cors',
+      httpStatus: postRes.status,
+      httpStatusText: postRes.statusText,
+      durationMs: probe2Duration,
+      success: postRes.status >= 200 && postRes.status < 400,
+      responseTextSnippet: postSnippet,
+      corsBlocked: false,
+      timeout: false,
+    });
+
+    console.log(`[Probe 2 POST] Status: ${postRes.status} ${postRes.statusText} (${probe2Duration}ms)`);
+    console.log('[Probe 2 POST] Response Body:', postSnippet);
+  } catch (err: unknown) {
+    const probe2Duration = Date.now() - probe2Start;
+    const errorObj = err as Error;
+    const isTimeout = errorObj.name === 'AbortError';
+    const isCors =
+      !isTimeout &&
+      (errorObj instanceof TypeError || errorObj.message.toLowerCase().includes('fetch'));
+
+    probes.push({
+      probeName: 'Probe 2: HTTP POST (CORS follow redirect)',
+      method: 'POST',
+      mode: 'cors',
+      durationMs: probe2Duration,
+      success: false,
+      timeout: isTimeout,
+      corsBlocked: isCors,
+      error: errorObj.message,
+      responseTextSnippet: isTimeout
+        ? 'Request timeout (>10s)'
+        : isCors
+        ? 'CORS Preflight / Redirect dibatasi oleh Google Auth'
+        : errorObj.message,
+    });
+
+    console.warn(`[Probe 2 POST Error] (${probe2Duration}ms):`, errorObj.message);
+  }
+
+  // Probe 3: HTTP POST (mode: 'no-cors' - Transport Reachability Check)
+  const probe3Start = Date.now();
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+    const opaqueRes = await fetch(targetUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8',
+      },
+      body: JSON.stringify({ action: 'DIAGNOSTIC_OPAQUE_CHECK', timestamp: new Date().toISOString() }),
+      mode: 'no-cors',
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
+
+    const probe3Duration = Date.now() - probe3Start;
+    probes.push({
+      probeName: 'Probe 3: HTTP POST Transport Check (no-cors mode)',
+      method: 'POST',
+      mode: 'no-cors',
+      httpStatus: opaqueRes.status, // Typically 0 in opaque mode
+      httpStatusText: opaqueRes.type === 'opaque' ? 'OPAQUE (PACKET DELIVERED)' : opaqueRes.statusText,
+      durationMs: probe3Duration,
+      success: true,
+      responseTextSnippet: 'Paket HTTP berhasil terkirim ke server Google (Status 0 Opaque - Respon sengaja disembunyikan oleh browser)',
+      corsBlocked: false,
+      timeout: false,
+    });
+
+    console.log(`[Probe 3 NO-CORS] Packet Reachability OK (${probe3Duration}ms, Status: ${opaqueRes.status}, Type: ${opaqueRes.type})`);
+  } catch (err: unknown) {
+    const probe3Duration = Date.now() - probe3Start;
+    const errorObj = err as Error;
+    const isTimeout = errorObj.name === 'AbortError';
+
+    probes.push({
+      probeName: 'Probe 3: HTTP POST Transport Check (no-cors mode)',
+      method: 'POST',
+      mode: 'no-cors',
+      durationMs: probe3Duration,
+      success: false,
+      timeout: isTimeout,
+      error: errorObj.message,
+      responseTextSnippet: isTimeout ? 'Koneksi timeout pada level jaringan' : 'Gagal mengirim paket jaringan',
+    });
+
+    console.warn(`[Probe 3 NO-CORS Error] (${probe3Duration}ms):`, errorObj.message);
+  }
+
+  // Analyze & Determine Detected Issue
+  let detectedIssue: GoogleAppsScriptDiagnosticReport['detectedIssue'] = 'NONE';
+  let summaryMessage = 'Koneksi ke Google Apps Script berfungsi dengan sempurna!';
+  let technicalDetails = '';
+  let recommendedAction = 'Tidak ada tindakan yang diperlukan. Semua probe jaringan berhasil.';
+
+  if (!isOnline) {
+    detectedIssue = 'NETWORK_OFFLINE';
+    summaryMessage = 'Perangkat Android sedang OFFLINE (Tidak ada koneksi internet).';
+    technicalDetails = 'navigator.onLine is false. Network stack is disconnected.';
+    recommendedAction = 'Periksa koneksi WiFi atau Data Seluler di perangkat Android Anda.';
+  } else if (!hasValidScheme) {
+    detectedIssue = 'INVALID_URL_SCHEME';
+    summaryMessage = 'URL bukan alamat Google Apps Script yang valid.';
+    technicalDetails = `URL provided does not match https://script.google.com/macros/s/... Pattern: ${targetUrl}`;
+    recommendedAction = 'Pastikan URL dimulai dengan https://script.google.com/macros/s/';
+  } else if (isDevUrl) {
+    detectedIssue = 'DEV_URL_INSTEAD_OF_EXEC';
+    summaryMessage = 'URL berakhiran "/dev". Ini memerlukan login akun Google pengembang!';
+    technicalDetails = 'Deploy /dev requires dev session cookies and blocks cross-origin fetch on Android.';
+    recommendedAction =
+      'Ganti akhiran "/dev" menjadi "/exec", atau lakukan Deploy > New Deployment > Web App di Google Apps Script.';
+  } else {
+    const hasTimeout = probes.some((p) => p.timeout);
+    const hasCors = probes.some((p) => p.corsBlocked);
+    const hasAnySuccessStatus = probes.some((p) => p.httpStatus && p.httpStatus >= 200 && p.httpStatus < 400);
+    const probe3Ok = probes.find((p) => p.probeName.includes('no-cors'))?.success;
+
+    if (hasAnySuccessStatus) {
+      detectedIssue = 'NONE';
+      const successProbe = probes.find((p) => p.httpStatus && p.httpStatus >= 200);
+      summaryMessage = `Koneksi berhasil! Respon HTTP ${successProbe?.httpStatus || 200} ${successProbe?.httpStatusText || 'OK'} diterima dari Google Apps Script.`;
+      technicalDetails = `Latency: ${successProbe?.durationMs}ms. Response: ${successProbe?.responseTextSnippet || 'OK'}`;
+      recommendedAction = 'Sambungan berfungsi normal.';
+    } else if (hasCors && probe3Ok) {
+      detectedIssue = 'CORS_OR_AUTH_RESTRICTED';
+      summaryMessage =
+        'Paket data berhasil sampai ke Google, tetapi respon HTTP diblokir oleh kebijakan CORS atau Izin Akses Google Apps Script.';
+      technicalDetails =
+        'CORS preflight / redirect blocked reading HTTP status and text. Probe 3 (no-cors) succeeded, meaning network delivery is functional, but Who Has Access might not be set to "Anyone".';
+      recommendedAction =
+        'Di Google Apps Script: Buka Deploy > Manage deployments > Edit > Pastikan "Who has access" = Anyone (Siapa saja), lalu klik Deploy.';
+    } else if (hasTimeout) {
+      detectedIssue = 'NETWORK_TIMEOUT';
+      summaryMessage =
+        'Permintaan ke Google Apps Script mengalami Time Out (lebih dari 10 detik).';
+      technicalDetails =
+        'Fetch aborted due to network latency timeout. Likely due to slow Android mobile network or Google Script cold start.';
+      recommendedAction =
+        'Coba ulangi beberapa saat lagi atau gunakan koneksi Wi-Fi yang lebih stabil.';
+    } else {
+      detectedIssue = 'UNKNOWN_ERROR';
+      summaryMessage = 'Gagal menghubungi endpoint Google Apps Script.';
+      technicalDetails = probes.map((p) => `${p.probeName}: ${p.error || p.responseTextSnippet}`).join(' | ');
+      recommendedAction = 'Periksa kembali URL Web App dan pastikan deployment Google Apps Script aktif.';
+    }
+  }
+
+  const report: GoogleAppsScriptDiagnosticReport = {
+    timestamp: new Date().toISOString(),
+    targetUrl,
+    isAndroid,
+    isMobile,
+    isOnline,
+    userAgent,
+    probes,
+    detectedIssue,
+    summaryMessage,
+    technicalDetails,
+    recommendedAction,
+  };
+
+  console.info('Diagnostik Selesai dalam', Date.now() - startTime, 'ms');
+  console.info('Kesimpulan:', report.summaryMessage);
+  console.info('Rekomendasi:', report.recommendedAction);
+  console.table(
+    probes.map((p) => ({
+      Probe: p.probeName,
+      Method: p.method,
+      Mode: p.mode,
+      HTTP_Status: p.httpStatus !== undefined ? `${p.httpStatus} ${p.httpStatusText || ''}` : p.corsBlocked ? 'CORS_BLOCKED' : p.timeout ? 'TIMEOUT' : 'FAILED',
+      Duration_ms: `${p.durationMs}ms`,
+      Response_Snippet: p.responseTextSnippet?.slice(0, 80) || p.error || '-',
+    }))
+  );
+  console.groupEnd();
+
+  // Attach to window object for Chrome DevTools / Remote Debugging on Android
+  if (typeof window !== 'undefined') {
+    (window as unknown as { __lastGoogleSheetDiagnosticReport?: GoogleAppsScriptDiagnosticReport }).__lastGoogleSheetDiagnosticReport = report;
+  }
+
+  return report;
+}
+
+// Expose globally for quick debugging in mobile developer console
+if (typeof window !== 'undefined') {
+  (window as unknown as { __runGoogleSheetDiagnostics?: typeof runGoogleSheetDiagnostics }).__runGoogleSheetDiagnostics = runGoogleSheetDiagnostics;
+}
+
 /**
  * Production-ready Google Apps Script template for the user's Google Sheet
  * Handles doGet, doPost, CREATE, UPDATE, SYNC_ALL, and TEST.

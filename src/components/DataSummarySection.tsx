@@ -12,8 +12,6 @@ interface DataSummarySectionProps {
   catBmi: string;
   avgSkill: number | null;
   catSkill: string;
-  notes?: string;
-  onNotesChange?: (notes: string) => void;
 }
 
 export const DataSummarySection: React.FC<DataSummarySectionProps> = ({
@@ -26,8 +24,6 @@ export const DataSummarySection: React.FC<DataSummarySectionProps> = ({
   catBmi,
   avgSkill,
   catSkill,
-  notes,
-  onNotesChange,
 }) => {
   const bmiStyle = getBMIBadgeStyle(catBmi);
 
@@ -126,22 +122,6 @@ export const DataSummarySection: React.FC<DataSummarySectionProps> = ({
           </div>
         </div>
       </div>
-
-      {/* Optional Trainer's Notes Field */}
-      {onNotesChange && (
-        <div className="pt-2">
-          <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-            Catatan Tambahan Coach / Evaluasi Khusus:
-          </label>
-          <textarea
-            rows={2}
-            value={notes || ''}
-            onChange={(e) => onNotesChange(e.target.value)}
-            placeholder="Tambahkan rekomendasi program, riwayat cedera, atau target latihan..."
-            className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors placeholder:text-slate-400"
-          />
-        </div>
-      )}
     </div>
   );
 };
