@@ -740,6 +740,9 @@ export default function App() {
         isOpen={isGoogleSheetModalOpen}
         onClose={() => setIsGoogleSheetModalOpen(false)}
         onUrlUpdated={handleUrlUpdated}
+        isSheetConnected={isSheetConnected}
+        hasSheetUrl={hasSheetUrl}
+        onToggleConnection={handleToggleSheetConnection}
       />
 
       {/* Modal: Member TCC (Sesi Baru) Picker */}

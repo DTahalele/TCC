@@ -9,10 +9,10 @@ interface HeaderProps {
   darkMode: boolean;
   setDarkMode: (val: boolean) => void;
   onOpenGoogleSheetModal: () => void;
-  isSheetConnected: boolean;
-  hasSheetUrl: boolean;
-  onToggleConnection?: () => void;
   onPrint: () => void;
+  isSheetConnected?: boolean;
+  hasSheetUrl?: boolean;
+  onToggleConnection?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -22,9 +22,6 @@ export const Header: React.FC<HeaderProps> = ({
   darkMode,
   setDarkMode,
   onOpenGoogleSheetModal,
-  isSheetConnected,
-  hasSheetUrl,
-  onToggleConnection,
   onPrint,
 }) => {
   return (
@@ -84,59 +81,15 @@ export const Header: React.FC<HeaderProps> = ({
             </span>
           </button>
 
-          {/* Status Indikator Database (ON Hijau / OFF Merah / BELUM TERHUBUNG Amber) */}
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              onClick={hasSheetUrl ? onToggleConnection : onOpenGoogleSheetModal}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
-                !hasSheetUrl
-                  ? 'bg-amber-50 text-amber-900 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-700 hover:bg-amber-100/80 animate-pulse'
-                  : isSheetConnected
-                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 hover:bg-emerald-100/70'
-                  : 'bg-rose-50 text-rose-800 border-rose-300 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800 hover:bg-rose-100/70'
-              }`}
-              title={
-                !hasSheetUrl
-                  ? 'Database Google Sheet belum dikonfigurasi di Web App ini. Klik untuk memasukkan URL Webhook Google Apps Script.'
-                  : isSheetConnected
-                  ? 'Status Database: ON (Tersambung). Klik untuk beralih ke OFF.'
-                  : 'Status Database: OFF (Terputus). Klik untuk menyambungkan kembali (ON).'
-              }
-            >
-              <span
-                className={`w-2 h-2 rounded-full ${
-                  !hasSheetUrl
-                    ? 'bg-amber-500'
-                    : isSheetConnected
-                    ? 'bg-emerald-500 animate-pulse'
-                    : 'bg-rose-500'
-                }`}
-              />
-              <span className="hidden sm:inline font-medium">Google Sheet</span>
-              <span
-                className={`text-[11px] font-extrabold tracking-wide ${
-                  !hasSheetUrl
-                    ? 'text-amber-700 dark:text-amber-400'
-                    : isSheetConnected
-                    ? 'text-emerald-600 dark:text-emerald-400'
-                    : 'text-rose-600 dark:text-rose-400'
-                }`}
-              >
-                {!hasSheetUrl ? 'BELUM TERHUBUNG' : isSheetConnected ? 'ON' : 'OFF'}
-              </span>
-            </button>
-
-            {/* Tombol Pengaturan URL Apps Script (untuk mengubah template / URL di masa depan) */}
-            <button
-              type="button"
-              onClick={onOpenGoogleSheetModal}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer"
-              title="Pengaturan URL Google Apps Script & Template Database"
-            >
-              <Settings className="w-3.5 h-3.5" />
-            </button>
-          </div>
+          {/* Tombol Pengaturan URL Apps Script & Status Database (Ikon Gear) */}
+          <button
+            type="button"
+            onClick={onOpenGoogleSheetModal}
+            className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer"
+            title="Pengaturan Database & Status Google Sheet"
+          >
+            <Settings className="w-4 h-4" />
+          </button>
 
           {/* Cetak PDF */}
           <button

@@ -7,12 +7,18 @@ interface GoogleSheetModalProps {
   isOpen: boolean;
   onClose: () => void;
   onUrlUpdated: () => void;
+  isSheetConnected?: boolean;
+  hasSheetUrl?: boolean;
+  onToggleConnection?: () => void;
 }
 
 export const GoogleSheetModal: React.FC<GoogleSheetModalProps> = ({
   isOpen,
   onClose,
   onUrlUpdated,
+  isSheetConnected = false,
+  hasSheetUrl = false,
+  onToggleConnection,
 }) => {
   const initialUrl = getGoogleSheetUrl();
   const [url, setUrl] = useState(initialUrl);
@@ -132,6 +138,60 @@ export const GoogleSheetModal: React.FC<GoogleSheetModalProps> = ({
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-5">
+          {/* Status Indikator Database (Dipindahkan dari Header Halaman Utama) */}
+          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
+            <div>
+              <div className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                <span>Status Sambungan Database Google Sheet:</span>
+              </div>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                Klik tombol di samping untuk beralih antara ON (aktif) atau OFF (terputus).
+              </p>
+            </div>
+
+            {/* Tombol Component yang dipindahkan dari Header */}
+            <button
+              type="button"
+              onClick={onToggleConnection}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer shrink-0 shadow-2xs ${
+                !hasSheetUrl
+                  ? 'bg-amber-50 text-amber-900 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-700 hover:bg-amber-100/80 animate-pulse'
+                  : isSheetConnected
+                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 hover:bg-emerald-100/70'
+                  : 'bg-rose-50 text-rose-800 border-rose-300 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800 hover:bg-rose-100/70'
+              }`}
+              title={
+                !hasSheetUrl
+                  ? 'Database Google Sheet belum dikonfigurasi. Masukkan URL Webhook di bawah.'
+                  : isSheetConnected
+                  ? 'Status Database: ON (Tersambung). Klik untuk beralih ke OFF.'
+                  : 'Status Database: OFF (Terputus). Klik untuk menyambungkan kembali (ON).'
+              }
+            >
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  !hasSheetUrl
+                    ? 'bg-amber-500'
+                    : isSheetConnected
+                    ? 'bg-emerald-500 animate-pulse'
+                    : 'bg-rose-500'
+                }`}
+              />
+              <span className="font-medium">Google Sheet</span>
+              <span
+                className={`text-[11px] font-extrabold tracking-wide ${
+                  !hasSheetUrl
+                    ? 'text-amber-700 dark:text-amber-400'
+                    : isSheetConnected
+                    ? 'text-emerald-600 dark:text-emerald-400'
+                    : 'text-rose-600 dark:text-rose-400'
+                }`}
+              >
+                {!hasSheetUrl ? 'BELUM TERHUBUNG' : isSheetConnected ? 'ON' : 'OFF'}
+              </span>
+            </button>
+          </div>
+
           {/* Webhook Input & Interactive Test Buttons */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
