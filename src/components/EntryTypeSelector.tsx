@@ -34,13 +34,13 @@ export const EntryTypeSelector: React.FC<EntryTypeSelectorProps> = ({
           className={`relative group flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold text-xs sm:text-sm transition-all duration-200 border ${
             currentEntryType === 'member'
               ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600 shadow-md shadow-emerald-600/20 ring-2 ring-emerald-500/30'
-              : 'bg-white dark:bg-slate-800/80 hover:bg-emerald-50/50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700'
+              : 'bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200/70 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700'
           }`}
         >
           <UserCheck className={`w-4 h-4 ${currentEntryType === 'member' ? 'text-white' : 'text-emerald-600'}`} />
           <div className="text-left">
             <span>Member TCC</span>
-            <span className={`block text-[10px] font-normal opacity-90 ${currentEntryType === 'member' ? 'text-emerald-100' : 'text-slate-400'}`}>
+            <span className={`block text-[10px] font-normal opacity-90 ${currentEntryType === 'member' ? 'text-emerald-100' : 'text-slate-500'}`}>
               Sesi Baru / Member Lama
             </span>
           </div>
@@ -53,13 +53,13 @@ export const EntryTypeSelector: React.FC<EntryTypeSelectorProps> = ({
           className={`relative group flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold text-xs sm:text-sm transition-all duration-200 border ${
             currentEntryType === 'trial'
               ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 dark:border-white shadow-md shadow-slate-900/20 ring-2 ring-slate-500/20'
-              : 'bg-white dark:bg-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700'
+              : 'bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200/70 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700'
           }`}
         >
           <UserPlus className={`w-4 h-4 ${currentEntryType === 'trial' ? 'text-emerald-400 dark:text-emerald-600' : 'text-slate-500'}`} />
           <div className="text-left">
             <span>New User</span>
-            <span className={`block text-[10px] font-normal opacity-90 ${currentEntryType === 'trial' ? 'text-slate-300 dark:text-slate-600' : 'text-slate-400'}`}>
+            <span className={`block text-[10px] font-normal opacity-90 ${currentEntryType === 'trial' ? 'text-slate-300 dark:text-slate-600' : 'text-slate-500'}`}>
               Trial / Member Baru
             </span>
           </div>
@@ -72,13 +72,13 @@ export const EntryTypeSelector: React.FC<EntryTypeSelectorProps> = ({
           className={`relative group flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold text-xs sm:text-sm transition-all duration-200 border ${
             currentEntryType === 'edit'
               ? 'bg-sky-600 hover:bg-sky-700 text-white border-sky-600 shadow-md shadow-sky-600/20 ring-2 ring-sky-500/30'
-              : 'bg-white dark:bg-slate-800/80 hover:bg-sky-50/50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700'
+              : 'bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200/70 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700'
           }`}
         >
           <Edit3 className={`w-4 h-4 ${currentEntryType === 'edit' ? 'text-white' : 'text-sky-600'}`} />
           <div className="text-left">
             <span>Edit Exist Data</span>
-            <span className={`block text-[10px] font-normal opacity-90 ${currentEntryType === 'edit' ? 'text-sky-100' : 'text-slate-400'}`}>
+            <span className={`block text-[10px] font-normal opacity-90 ${currentEntryType === 'edit' ? 'text-sky-100' : 'text-slate-500'}`}>
               Cari & Perbarui Baris Data
             </span>
           </div>

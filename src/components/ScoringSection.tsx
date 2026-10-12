@@ -52,7 +52,7 @@ export const ScoringSection: React.FC<ScoringSectionProps> = ({
 
         {/* Dynamic Average Pill */}
         <div className="self-start sm:self-auto">
-          <div className="px-3.5 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-1.5 shadow-2xs">
+          <div className="px-3.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-1.5 shadow-2xs">
             <span className="text-slate-500 dark:text-slate-400">Avg:</span>
             <span className="font-mono font-bold text-slate-900 dark:text-white">
               {averageScore !== null ? averageScore.toFixed(2) : '-.--'}
@@ -147,7 +147,7 @@ const ScoreItemCard: React.FC<ScoreItemCardProps> = ({ item, onSelect }) => {
 
 function getButtonScoreStyle(score: ScoreLevel, isSelected: boolean): string {
   if (!isSelected) {
-    return 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700';
+    return 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-200/70 dark:hover:bg-slate-700';
   }
 
   // Active styles matching mockup

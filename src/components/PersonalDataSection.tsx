@@ -86,7 +86,7 @@ export const PersonalDataSection: React.FC<PersonalDataSectionProps> = ({
               className={`px-3.5 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
                 customerType === 'trial'
                   ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 border-slate-900 dark:border-white shadow-xs'
-                  : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200/70 dark:hover:bg-slate-700'
               }`}
             >
               Trial User (1x Sesi / Trial)
@@ -97,7 +97,7 @@ export const PersonalDataSection: React.FC<PersonalDataSectionProps> = ({
               className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
                 customerType === 'member'
                   ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs ring-2 ring-emerald-500/30'
-                  : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100/80'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200/70 dark:hover:bg-slate-700'
               }`}
             >
               <span>Member TCC (Regular TCC)</span>
@@ -160,7 +160,7 @@ export const PersonalDataSection: React.FC<PersonalDataSectionProps> = ({
               className={`py-2 px-3 rounded-xl border text-xs sm:text-sm font-semibold transition-all ${
                 gender === 'male'
                   ? 'bg-emerald-50 dark:bg-emerald-950/50 border-emerald-500 text-emerald-800 dark:text-emerald-300 font-bold ring-1 ring-emerald-500'
-                  : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50'
+                  : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200/70 dark:hover:bg-slate-700'
               }`}
             >
               Male
@@ -171,7 +171,7 @@ export const PersonalDataSection: React.FC<PersonalDataSectionProps> = ({
               className={`py-2 px-3 rounded-xl border text-xs sm:text-sm font-semibold transition-all ${
                 gender === 'female'
                   ? 'bg-emerald-50 dark:bg-emerald-950/50 border-emerald-500 text-emerald-800 dark:text-emerald-300 font-bold ring-1 ring-emerald-500'
-                  : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50'
+                  : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200/70 dark:hover:bg-slate-700'
               }`}
             >
               Female
