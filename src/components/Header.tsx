@@ -101,14 +101,30 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="hidden sm:inline">Cetak PDF</span>
           </button>
 
-          {/* Dark Mode Toggle */}
+          {/* Dark / Light Mode Toggle */}
           <button
             type="button"
             onClick={() => setDarkMode(!darkMode)}
-            className="p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-            title={darkMode ? 'Ubah ke Mode Terang' : 'Ubah ke Dark Mode'}
+            aria-pressed={darkMode}
+            aria-label={darkMode ? 'Beralih ke Mode Terang' : 'Beralih ke Mode Gelap'}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer shadow-2xs ${
+              darkMode
+                ? 'bg-slate-800 border-slate-700 text-amber-300 hover:bg-slate-700 hover:border-slate-600'
+                : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300'
+            }`}
+            title={darkMode ? 'Beralih ke Mode Terang (Light Mode)' : 'Beralih ke Mode Gelap (Dark Mode)'}
           >
-            {darkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-700" />}
+            {darkMode ? (
+              <>
+                <Sun className="w-3.5 h-3.5 text-amber-400 animate-in spin-in-180 duration-300" />
+                <span className="hidden sm:inline text-slate-200">Terang</span>
+              </>
+            ) : (
+              <>
+                <Moon className="w-3.5 h-3.5 text-indigo-600 animate-in spin-in-180 duration-300" />
+                <span className="hidden sm:inline text-slate-700">Gelap</span>
+              </>
+            )}
           </button>
         </div>
       </div>

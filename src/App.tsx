@@ -49,8 +49,18 @@ import { BMICalculatorModal } from './components/BMICalculatorModal';
 import { PrintView } from './components/PrintView';
 
 export default function App() {
-  // Theme state
-  const [darkMode, setDarkMode] = useState<boolean>(false);
+  // Theme state with localStorage persistence and system preference detection
+  const [darkMode, setDarkMode] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('tcc_scorecard_darkmode');
+      if (saved !== null) {
+        return saved === 'true';
+      }
+      return typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    } catch {
+      return false;
+    }
+  });
 
   // Tab & Modal states
   const [currentTab, setCurrentTab] = useState<'form' | 'archive'>('form');
@@ -89,12 +99,20 @@ export default function App() {
     setRecords(loaded);
   }, []);
 
-  // Sync dark mode class
+  // Sync dark mode class and persist to localStorage
   useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
+    try {
+      if (darkMode) {
+        document.documentElement.classList.add('dark');
+        document.body.classList.add('dark');
+        localStorage.setItem('tcc_scorecard_darkmode', 'true');
+      } else {
+        document.documentElement.classList.remove('dark');
+        document.body.classList.remove('dark');
+        localStorage.setItem('tcc_scorecard_darkmode', 'false');
+      }
+    } catch {
+      // Ignore storage errors in restricted iframes
     }
   }, [darkMode]);
 
