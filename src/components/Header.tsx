@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Database, FileText, Moon, Sun, Printer, Settings, User, LogOut } from 'lucide-react';
+import { Database, FileText, Moon, Sun, Settings, User, LogOut } from 'lucide-react';
 import { TCCLogo } from './TCCLogo';
 import { WhitelistUser } from '../types/auth';
 
@@ -10,7 +10,7 @@ interface HeaderProps {
   darkMode: boolean;
   setDarkMode: (val: boolean) => void;
   onOpenGoogleSheetModal: () => void;
-  onPrint: () => void;
+  onPrint?: () => void;
   isSheetConnected?: boolean;
   hasSheetUrl?: boolean;
   onToggleConnection?: () => void;
@@ -50,7 +50,7 @@ export const Header: React.FC<HeaderProps> = ({
               </span>
             </div>
             <p className="text-[11px] sm:text-xs font-semibold tracking-wider text-slate-500 dark:text-slate-400 uppercase">
-              FORM - PHYSICAL FITNESS SCORE CARD
+              FORM - PHYSICAL FITNESS SCOR CARD & DATA MEMBER
             </p>
           </div>
         </div>
@@ -86,26 +86,6 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200">
               {archiveCount}
             </span>
-          </button>
-
-          {/* Tombol Pengaturan URL Apps Script & Status Database (Ikon Gear) */}
-          <button
-            type="button"
-            onClick={onOpenGoogleSheetModal}
-            className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200/70 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer"
-            title="Pengaturan Database & Status Google Sheet"
-          >
-            <Settings className="w-4 h-4" />
-          </button>
-
-          {/* Cetak PDF */}
-          <button
-            type="button"
-            onClick={onPrint}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200/70 dark:hover:bg-slate-700 transition-colors shadow-2xs"
-          >
-            <Printer className="w-3.5 h-3.5 text-slate-500" />
-            <span className="hidden sm:inline">Cetak PDF</span>
           </button>
 
           {/* Dark / Light Mode Toggle */}
@@ -156,12 +136,12 @@ export const Header: React.FC<HeaderProps> = ({
                 </div>
               </div>
 
-              {/* Logout Button */}
+              {/* Logout / Sign Out Button */}
               {onLogout && (
                 <button
                   type="button"
                   onClick={() => setShowLogoutConfirm(true)}
-                  className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-transparent hover:border-rose-200 dark:hover:border-rose-800/50 transition-colors"
+                  className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-transparent hover:border-rose-200 dark:hover:border-rose-800/50 transition-colors cursor-pointer"
                   title="Keluar / Logout Akun"
                 >
                   <LogOut className="w-4 h-4" />
@@ -169,6 +149,18 @@ export const Header: React.FC<HeaderProps> = ({
               )}
             </div>
           )}
+
+          {/* Tombol Pengaturan Database (Ikon Gear) di Paling Kanan dengan Jarak Ideal */}
+          <div className="pl-1.5 sm:pl-2 ml-0.5 sm:ml-1 border-l border-slate-200 dark:border-slate-700 flex items-center">
+            <button
+              type="button"
+              onClick={onOpenGoogleSheetModal}
+              className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200/70 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer shadow-2xs"
+              title="Pengaturan Database & Status Google Sheet"
+            >
+              <Settings className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
 

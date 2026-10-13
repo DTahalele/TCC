@@ -29,7 +29,7 @@ export const PrintView: React.FC<PrintViewProps> = ({ record }) => {
               <span>THE </span><span className="text-red-600">CORE</span><span> CHAMBER</span>
             </h1>
             <p className="text-xs font-bold tracking-wider uppercase text-slate-700">
-              FORM - PHYSICAL FITNESS SCORE CARD
+              FORM - PHYSICAL FITNESS SCOR CARD & DATA MEMBER
             </p>
           </div>
         </div>
