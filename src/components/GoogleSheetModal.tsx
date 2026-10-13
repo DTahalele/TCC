@@ -217,60 +217,6 @@ export const GoogleSheetModal: React.FC<GoogleSheetModalProps> = ({
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-5">
-          {/* Status Indikator Database (Dipindahkan dari Header Halaman Utama) */}
-          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
-            <div>
-              <div className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                <span>Status Sambungan Database Google Sheet:</span>
-              </div>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                Klik tombol di samping untuk beralih antara ON (aktif) atau OFF (terputus).
-              </p>
-            </div>
-
-            {/* Tombol Component yang dipindahkan dari Header */}
-            <button
-              type="button"
-              onClick={onToggleConnection}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer shrink-0 shadow-2xs ${
-                !hasSheetUrl
-                  ? 'bg-amber-50 text-amber-900 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-700 hover:bg-amber-100/80 animate-pulse'
-                  : isSheetConnected
-                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 hover:bg-emerald-100/70'
-                  : 'bg-rose-50 text-rose-800 border-rose-300 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800 hover:bg-rose-100/70'
-              }`}
-              title={
-                !hasSheetUrl
-                  ? 'Database Google Sheet belum dikonfigurasi. Masukkan URL Webhook di bawah.'
-                  : isSheetConnected
-                  ? 'Status Database: ON (Tersambung). Klik untuk beralih ke OFF.'
-                  : 'Status Database: OFF (Terputus). Klik untuk menyambungkan kembali (ON).'
-              }
-            >
-              <span
-                className={`w-2 h-2 rounded-full ${
-                  !hasSheetUrl
-                    ? 'bg-amber-500'
-                    : isSheetConnected
-                    ? 'bg-emerald-500 animate-pulse'
-                    : 'bg-rose-500'
-                }`}
-              />
-              <span className="font-medium">Google Sheet</span>
-              <span
-                className={`text-[11px] font-extrabold tracking-wide ${
-                  !hasSheetUrl
-                    ? 'text-amber-700 dark:text-amber-400'
-                    : isSheetConnected
-                    ? 'text-emerald-600 dark:text-emerald-400'
-                    : 'text-rose-600 dark:text-rose-400'
-                }`}
-              >
-                {!hasSheetUrl ? 'BELUM TERHUBUNG' : isSheetConnected ? 'ON' : 'OFF'}
-              </span>
-            </button>
-          </div>
-
           {/* Penjelasan jika belum terhubung di perangkat ini (Misal HP Android) */}
           {!hasSheetUrl && (
             <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/80 flex items-start gap-3">
@@ -518,55 +464,6 @@ export const GoogleSheetModal: React.FC<GoogleSheetModalProps> = ({
             )}
           </div>
 
-          {/* Panduan Tab Whitelist User (Akses & Otorisasi Pengguna) */}
-          <div className="p-4 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 space-y-2.5">
-            <div className="flex items-center gap-2 text-xs font-bold text-emerald-900 dark:text-emerald-200">
-              <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-              <span>Pengaturan Hak Akses Pengguna (Tab: whitelist_user)</span>
-            </div>
-            <p className="text-[11px] text-emerald-800 dark:text-emerald-300 leading-relaxed">
-              Untuk mengontrol siapa saja yang berhak membuka formulir ini, buat sheet/tab baru bernama <code className="font-mono font-bold bg-white dark:bg-slate-900 px-1.5 py-0.5 rounded text-emerald-600 dark:text-emerald-400">whitelist_user</code> di Google Spreadsheet Anda dengan 5 kolom berikut:
-            </p>
-            <div className="overflow-x-auto">
-              <table className="w-full text-[11px] text-left border-collapse border border-emerald-200 dark:border-emerald-800 rounded-xl overflow-hidden bg-white/80 dark:bg-slate-900/80">
-                <thead>
-                  <tr className="bg-emerald-100/80 dark:bg-emerald-900/50 text-emerald-950 dark:text-emerald-200 font-bold">
-                    <th className="p-1.5 border border-emerald-200 dark:border-emerald-800">Nama</th>
-                    <th className="p-1.5 border border-emerald-200 dark:border-emerald-800">Email</th>
-                    <th className="p-1.5 border border-emerald-200 dark:border-emerald-800">PIN</th>
-                    <th className="p-1.5 border border-emerald-200 dark:border-emerald-800">Peran</th>
-                    <th className="p-1.5 border border-emerald-200 dark:border-emerald-800">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="text-slate-700 dark:text-slate-300">
-                  <tr className="border-b border-emerald-100 dark:border-emerald-800/50">
-                    <td className="p-1.5 border border-emerald-200 dark:border-emerald-800">David Tahalele</td>
-                    <td className="p-1.5 border border-emerald-200 dark:border-emerald-800 font-mono">david.tahalele@gmail.com</td>
-                    <td className="p-1.5 border border-emerald-200 dark:border-emerald-800 font-mono">0298</td>
-                    <td className="p-1.5 border border-emerald-200 dark:border-emerald-800">Admin Web App</td>
-                    <td className="p-1.5 border border-emerald-200 dark:border-emerald-800 font-bold text-emerald-700 dark:text-emerald-400">Aktif</td>
-                  </tr>
-                  <tr className="border-b border-emerald-100 dark:border-emerald-800/50">
-                    <td className="p-1.5 border border-emerald-200 dark:border-emerald-800">Airone Analyst</td>
-                    <td className="p-1.5 border border-emerald-200 dark:border-emerald-800 font-mono">analyst@airzone.id</td>
-                    <td className="p-1.5 border border-emerald-200 dark:border-emerald-800 font-mono">7940</td>
-                    <td className="p-1.5 border border-emerald-200 dark:border-emerald-800">-</td>
-                    <td className="p-1.5 border border-emerald-200 dark:border-emerald-800 font-bold text-emerald-700 dark:text-emerald-400">Aktif</td>
-                  </tr>
-                  <tr>
-                    <td className="p-1.5 border border-emerald-200 dark:border-emerald-800">Mariskha Primasari</td>
-                    <td className="p-1.5 border border-emerald-200 dark:border-emerald-800 font-mono">tcc.coordinator@airzone.id</td>
-                    <td className="p-1.5 border border-emerald-200 dark:border-emerald-800 font-mono">3600</td>
-                    <td className="p-1.5 border border-emerald-200 dark:border-emerald-800">Coach Coordinator</td>
-                    <td className="p-1.5 border border-emerald-200 dark:border-emerald-800 font-bold text-emerald-700 dark:text-emerald-400">Aktif</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-            <p className="text-[10px] text-emerald-700 dark:text-emerald-400 leading-relaxed">
-              ✓ Mendukung minimum 50+ hingga ratusan akun • Mendukung semua jenis email (Google Workspace @airzone.id & email umum @gmail.com) • Menghapus baris atau mengubah Status menjadi <em>Non-Aktif</em> seketika memblokir akses pengguna secara real-time.
-            </p>
-          </div>
 
           {/* Tutorial Step-by-Step Header & Tombol Salin */}
           <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
