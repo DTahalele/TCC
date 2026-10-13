@@ -47,8 +47,20 @@ import { MemberPickerModal } from './components/MemberPickerModal';
 import { GoogleSheetModal } from './components/GoogleSheetModal';
 import { BMICalculatorModal } from './components/BMICalculatorModal';
 import { PrintView } from './components/PrintView';
+import { AuthGate } from './components/AuthGate';
+import { WhitelistUser, AuthSession } from './types/auth';
+import {
+  getCurrentSession,
+  saveAuthSession,
+  logout as performLogout,
+  isCurrentSessionValid,
+  syncWhitelistFromGoogleSheet,
+} from './utils/auth';
 
 export default function App() {
+  // Authentication session state
+  const [authSession, setAuthSession] = useState<AuthSession | null>(() => getCurrentSession());
+
   // Theme state with localStorage persistence and system preference detection
   const [darkMode, setDarkMode] = useState<boolean>(() => {
     try {
@@ -124,6 +136,33 @@ export default function App() {
     }
   }, [toastMessage]);
 
+  // Periodic / background whitelist check to ensure revoked emails immediately lose access
+  useEffect(() => {
+    if (authSession) {
+      syncWhitelistFromGoogleSheet().then((res) => {
+        if (res.success && authSession) {
+          if (!isCurrentSessionValid(authSession)) {
+            performLogout();
+            setAuthSession(null);
+            setToastMessage({
+              text: 'Akses akun Anda telah dinonaktifkan atau dihapus dari whitelist oleh Administrator.',
+              type: 'error',
+            });
+          }
+        }
+      });
+    }
+  }, [authSession]);
+
+  const handleLogout = () => {
+    performLogout();
+    setAuthSession(null);
+    setToastMessage({
+      text: 'Anda telah berhasil keluar dari akun.',
+      type: 'info',
+    });
+  };
+
   const [hasSheetUrl, setHasSheetUrl] = useState<boolean>(() => hasGoogleSheetUrlConfigured());
   const [isSheetConnected, setIsSheetConnected] = useState<boolean>(() => isDatabaseConnected());
 
@@ -131,6 +170,8 @@ export default function App() {
     const configured = hasGoogleSheetUrlConfigured();
     setHasSheetUrl(configured);
     setIsSheetConnected(isDatabaseConnected());
+    // Also re-sync whitelist with the new URL
+    syncWhitelistFromGoogleSheet();
     setToastMessage({
       text: configured
         ? '✓ Konfigurasi URL Google Sheet berhasil diperbarui & tersambung!'
@@ -558,6 +599,36 @@ export default function App() {
     { scoreKey: 'score_coordination', catKey: 'cat_coordination', label: 'Coordination', currentScore: formData.score_coordination, currentCategory: formData.cat_coordination },
   ];
 
+  // If user is not authenticated, display the AuthGate login screen
+  if (!authSession || !isCurrentSessionValid(authSession)) {
+    return (
+      <AuthGate
+        onAuthenticated={(user: WhitelistUser) => {
+          const newSession: AuthSession = {
+            user,
+            loginTime: new Date().toISOString(),
+            rememberMe: true,
+          };
+          setAuthSession(newSession);
+          // Auto-fill Coaches field if coach name exists and not currently editing another coach's record
+          if (user.nama && !isEditing) {
+            setFormData((prev) => ({
+              ...prev,
+              Coaches: user.nama,
+            }));
+          }
+          setToastMessage({
+            text: `Selamat datang, ${user.nama}! Akses formulir berhasil dibuka.`,
+            type: 'success',
+          });
+        }}
+        darkMode={darkMode}
+        setDarkMode={setDarkMode}
+        onOpenGoogleSheetModal={() => setIsGoogleSheetModalOpen(true)}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors">
       {/* Toast Notification */}
@@ -584,7 +655,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Main Header */}
+      {/* Main Header with User Profile Badge & Logout */}
       <Header
         currentTab={currentTab}
         setCurrentTab={setCurrentTab}
@@ -596,6 +667,8 @@ export default function App() {
         hasSheetUrl={hasSheetUrl}
         onToggleConnection={handleToggleSheetConnection}
         onPrint={handlePrint}
+        currentUser={authSession.user}
+        onLogout={handleLogout}
       />
 
       {/* Main Container */}

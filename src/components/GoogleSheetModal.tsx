@@ -518,6 +518,56 @@ export const GoogleSheetModal: React.FC<GoogleSheetModalProps> = ({
             )}
           </div>
 
+          {/* Panduan Tab Whitelist User (Akses & Otorisasi Pengguna) */}
+          <div className="p-4 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 space-y-2.5">
+            <div className="flex items-center gap-2 text-xs font-bold text-emerald-900 dark:text-emerald-200">
+              <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+              <span>Pengaturan Hak Akses Pengguna (Tab: whitelist_user)</span>
+            </div>
+            <p className="text-[11px] text-emerald-800 dark:text-emerald-300 leading-relaxed">
+              Untuk mengontrol siapa saja yang berhak membuka formulir ini, buat sheet/tab baru bernama <code className="font-mono font-bold bg-white dark:bg-slate-900 px-1.5 py-0.5 rounded text-emerald-600 dark:text-emerald-400">whitelist_user</code> di Google Spreadsheet Anda dengan 5 kolom berikut:
+            </p>
+            <div className="overflow-x-auto">
+              <table className="w-full text-[11px] text-left border-collapse border border-emerald-200 dark:border-emerald-800 rounded-xl overflow-hidden bg-white/80 dark:bg-slate-900/80">
+                <thead>
+                  <tr className="bg-emerald-100/80 dark:bg-emerald-900/50 text-emerald-950 dark:text-emerald-200 font-bold">
+                    <th className="p-1.5 border border-emerald-200 dark:border-emerald-800">Nama</th>
+                    <th className="p-1.5 border border-emerald-200 dark:border-emerald-800">Email</th>
+                    <th className="p-1.5 border border-emerald-200 dark:border-emerald-800">PIN</th>
+                    <th className="p-1.5 border border-emerald-200 dark:border-emerald-800">Peran</th>
+                    <th className="p-1.5 border border-emerald-200 dark:border-emerald-800">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="text-slate-700 dark:text-slate-300">
+                  <tr className="border-b border-emerald-100 dark:border-emerald-800/50">
+                    <td className="p-1.5 border border-emerald-200 dark:border-emerald-800">David Tahalele</td>
+                    <td className="p-1.5 border border-emerald-200 dark:border-emerald-800 font-mono">david.tahalele@gmail.com</td>
+                    <td className="p-1.5 border border-emerald-200 dark:border-emerald-800 font-mono">0298</td>
+                    <td className="p-1.5 border border-emerald-200 dark:border-emerald-800">Admin Web App</td>
+                    <td className="p-1.5 border border-emerald-200 dark:border-emerald-800 font-bold text-emerald-700 dark:text-emerald-400">Aktif</td>
+                  </tr>
+                  <tr className="border-b border-emerald-100 dark:border-emerald-800/50">
+                    <td className="p-1.5 border border-emerald-200 dark:border-emerald-800">Airone Analyst</td>
+                    <td className="p-1.5 border border-emerald-200 dark:border-emerald-800 font-mono">analyst@airzone.id</td>
+                    <td className="p-1.5 border border-emerald-200 dark:border-emerald-800 font-mono">7940</td>
+                    <td className="p-1.5 border border-emerald-200 dark:border-emerald-800">-</td>
+                    <td className="p-1.5 border border-emerald-200 dark:border-emerald-800 font-bold text-emerald-700 dark:text-emerald-400">Aktif</td>
+                  </tr>
+                  <tr>
+                    <td className="p-1.5 border border-emerald-200 dark:border-emerald-800">Mariskha Primasari</td>
+                    <td className="p-1.5 border border-emerald-200 dark:border-emerald-800 font-mono">tcc.coordinator@airzone.id</td>
+                    <td className="p-1.5 border border-emerald-200 dark:border-emerald-800 font-mono">3600</td>
+                    <td className="p-1.5 border border-emerald-200 dark:border-emerald-800">Coach Coordinator</td>
+                    <td className="p-1.5 border border-emerald-200 dark:border-emerald-800 font-bold text-emerald-700 dark:text-emerald-400">Aktif</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p className="text-[10px] text-emerald-700 dark:text-emerald-400 leading-relaxed">
+              ✓ Mendukung minimum 50+ hingga ratusan akun • Mendukung semua jenis email (Google Workspace @airzone.id & email umum @gmail.com) • Menghapus baris atau mengubah Status menjadi <em>Non-Aktif</em> seketika memblokir akses pengguna secara real-time.
+            </p>
+          </div>
+
           {/* Tutorial Step-by-Step Header & Tombol Salin */}
           <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
             <div className="flex items-center justify-between py-1">

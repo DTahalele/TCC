@@ -700,17 +700,38 @@ if (typeof window !== 'undefined') {
 
 /**
  * Production-ready Google Apps Script template for the user's Google Sheet
- * Handles doGet, doPost, CREATE, UPDATE, SYNC_ALL, and TEST.
+ * Handles doGet, doPost, CREATE, UPDATE, SYNC_ALL, TEST, and WHITELIST_USER authentication.
  */
 export const GOOGLE_APPS_SCRIPT_TEMPLATE = `/**
  * THE CORE CHAMBER - PHYSICAL FITNESS SCORE CARD
- * Google Apps Script Web App Endpoint
+ * Google Apps Script Web App Endpoint + Whitelist User Security
+ * 
+ * STRUKTUR SPREADSHEET:
+ * 1. Tab "Database" (atau Sheet Utama) -> Menyimpan hasil rekaman formulir scorecard
+ * 2. Tab "whitelist_user" -> Menyimpan daftar pengguna/coach yang berhak akses
+ *    Header Kolom Tab whitelist_user:
+ *    | Nama | Email | PIN | Peran | Status |
  * 
  * PANDUAN PENTING SAAT DEPLOY:
  * 1. Klik Deploy > New deployment (atau Manage deployments > Edit > Version: New version)
  * 2. "Execute as": "Me" (Email pemilik spreadsheet) -> WAJIB!
  * 3. "Who has access": "Anyone" (Siapa saja) -> WAJIB!
  */
+
+function getDatabaseSheet(ss) {
+  return ss.getSheetByName("Database") || ss.getActiveSheet();
+}
+
+function getWhitelistSheet(ss) {
+  var sheets = ss.getSheets();
+  for (var i = 0; i < sheets.length; i++) {
+    var name = sheets[i].getName().trim().toLowerCase();
+    if (name === "whitelist_user" || name === "whitelist" || name === "whitelist_users") {
+      return sheets[i];
+    }
+  }
+  return null;
+}
 
 function ensureHeader(sheet) {
   if (sheet.getLastRow() === 0) {
@@ -733,6 +754,52 @@ function ensureHeader(sheet) {
   }
 }
 
+function readWhitelistUsers(ss) {
+  var sheet = getWhitelistSheet(ss);
+  if (!sheet) return [];
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return [];
+  var lastCol = Math.max(sheet.getLastColumn(), 5);
+
+  // Gunakan getDisplayValues() agar angka nol di depan (misal PIN "0298") tetap utuh sebagai teks!
+  var data = sheet.getRange(1, 1, lastRow, lastCol).getDisplayValues();
+  var headers = data[0].map(function(h) { return String(h).trim().toLowerCase(); });
+
+  var colNama = headers.indexOf("nama");
+  var colEmail = headers.indexOf("email");
+  var colPin = headers.indexOf("pin");
+  var colPeran = headers.indexOf("peran");
+  var colStatus = headers.indexOf("status");
+
+  if (colNama === -1) colNama = 0;
+  if (colEmail === -1) colEmail = 1;
+  if (colPin === -1) colPin = 2;
+  if (colPeran === -1) colPeran = 3;
+  if (colStatus === -1) colStatus = 4;
+
+  var users = [];
+  // Mendukung puluhan hingga ratusan email (50+ baris)
+  for (var r = 1; r < data.length; r++) {
+    var row = data[r];
+    var nama = String(row[colNama] || "").trim();
+    var email = String(row[colEmail] || "").trim().toLowerCase();
+    var pin = String(row[colPin] || "").trim();
+    var peran = String(row[colPeran] || "").trim();
+    var status = String(row[colStatus] || "Aktif").trim();
+
+    if (nama || email) {
+      users.push({
+        nama: nama,
+        email: email,
+        pin: pin,
+        peran: peran,
+        status: status
+      });
+    }
+  }
+  return users;
+}
+
 function mapDataToRow(d) {
   if (!d) return [];
   return [
@@ -753,24 +820,92 @@ function mapDataToRow(d) {
   ];
 }
 
-// Untuk tes buka URL langsung di browser
+// Untuk tes buka URL langsung di browser / verifikasi GET
 function doGet(e) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getActiveSheet();
-  ensureHeader(sheet);
+  var pAction = (e && e.parameter && e.parameter.action) ? String(e.parameter.action).trim() : "";
+
+  // 1. GET WHITELIST USERS
+  if (pAction === "GET_WHITELIST") {
+    var users = readWhitelistUsers(ss);
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "success",
+      total: users.length,
+      users: users
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // 2. VERIFY USER VIA GET
+  if (pAction === "VERIFY_USER") {
+    var reqEmail = (e && e.parameter && e.parameter.email ? String(e.parameter.email) : "").trim().toLowerCase();
+    var reqPin = (e && e.parameter && e.parameter.pin ? String(e.parameter.pin) : "").trim();
+    var allUsers = readWhitelistUsers(ss);
+    var target = null;
+    for (var u = 0; u < allUsers.length; u++) {
+      if (allUsers[u].email === reqEmail) {
+        target = allUsers[u];
+        break;
+      }
+    }
+
+    if (!target) {
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "error",
+        code: "NOT_FOUND",
+        message: "Email tidak terdaftar dalam tab whitelist_user"
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    var st = target.status.toLowerCase();
+    if (st === "non-aktif" || st === "nonaktif" || st === "inactive") {
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "error",
+        code: "INACTIVE",
+        message: "Akun berstatus Non-Aktif"
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    if (target.pin !== reqPin) {
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "error",
+        code: "INVALID_PIN",
+        message: "PIN yang dimasukkan salah"
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "success",
+      code: "SUCCESS",
+      user: {
+        nama: target.nama,
+        email: target.email,
+        peran: target.peran,
+        status: target.status
+      }
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // Default: Health Check
+  var dbSheet = getDatabaseSheet(ss);
+  ensureHeader(dbSheet);
+  var wlSheet = getWhitelistSheet(ss);
+  var wlCount = wlSheet ? Math.max(0, wlSheet.getLastRow() - 1) : 0;
+
   return ContentService.createTextOutput(JSON.stringify({
     status: "ready",
-    sheetName: sheet.getName(),
-    totalRows: sheet.getLastRow(),
-    message: "THE CORE CHAMBER - Webhook Apps Script Aktif & Terhubung!"
+    databaseSheet: dbSheet.getName(),
+    totalScorecards: dbSheet.getLastRow() > 1 ? dbSheet.getLastRow() - 1 : 0,
+    hasWhitelistSheet: Boolean(wlSheet),
+    totalWhitelistUsers: wlCount,
+    message: "THE CORE CHAMBER - Webhook Apps Script & Whitelist User Aktif!"
   })).setMimeType(ContentService.MimeType.JSON);
 }
 
 function doPost(e) {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sheet = ss.getActiveSheet();
-    ensureHeader(sheet);
+    var dbSheet = getDatabaseSheet(ss);
+    ensureHeader(dbSheet);
 
     var rawContent = "";
     if (e && e.postData && e.postData.contents) {
@@ -787,11 +922,71 @@ function doPost(e) {
     var payload = JSON.parse(rawContent);
     var action = payload.action;
 
-    // Build row index lookup untuk mencegah row duplicate
-    var lastRow = sheet.getLastRow();
+    // 0. VERIFIKASI WHITELIST VIA POST
+    if (action === "VERIFY_USER") {
+      var reqEmail = String(payload.email || "").trim().toLowerCase();
+      var reqPin = String(payload.pin || "").trim();
+      var allUsers = readWhitelistUsers(ss);
+      var target = null;
+      for (var u = 0; u < allUsers.length; u++) {
+        if (allUsers[u].email === reqEmail) {
+          target = allUsers[u];
+          break;
+        }
+      }
+
+      if (!target) {
+        return ContentService.createTextOutput(JSON.stringify({
+          status: "error",
+          code: "NOT_FOUND",
+          message: "Email tidak terdaftar dalam tab whitelist_user"
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+
+      var st = target.status.toLowerCase();
+      if (st === "non-aktif" || st === "nonaktif" || st === "inactive") {
+        return ContentService.createTextOutput(JSON.stringify({
+          status: "error",
+          code: "INACTIVE",
+          message: "Akun berstatus Non-Aktif"
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+
+      if (target.pin !== reqPin) {
+        return ContentService.createTextOutput(JSON.stringify({
+          status: "error",
+          code: "INVALID_PIN",
+          message: "PIN yang dimasukkan salah"
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "success",
+        code: "SUCCESS",
+        user: {
+          nama: target.nama,
+          email: target.email,
+          peran: target.peran,
+          status: target.status
+        }
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // 0.B GET WHITELIST VIA POST
+    if (action === "GET_WHITELIST") {
+      var users = readWhitelistUsers(ss);
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "success",
+        total: users.length,
+        users: users
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // Build row index lookup untuk mencegah row duplicate pada tabel Database
+    var lastRow = dbSheet.getLastRow();
     var idToRowMap = {};
     if (lastRow > 1) {
-      var idValues = sheet.getRange(2, 1, lastRow - 1, 10).getValues();
+      var idValues = dbSheet.getRange(2, 1, lastRow - 1, 10).getValues();
       for (var r = 0; r < idValues.length; r++) {
         var recId = String(idValues[r][0] || '').trim();
         var memId = String(idValues[r][9] || '').trim(); // Kolom J (MemberID)
@@ -817,12 +1012,12 @@ function doPost(e) {
 
         if (existingRow && existingRow > 1) {
           // UPDATE baris yang sudah ada (IN-PLACE, TIDAK APPEND!)
-          sheet.getRange(existingRow, 1, 1, rVals.length).setValues([rVals]);
+          dbSheet.getRange(existingRow, 1, 1, rVals.length).setValues([rVals]);
           updatedCount++;
         } else {
           // APPEND hanya jika data benar-benar baru
-          sheet.appendRow(rVals);
-          var newRowNumber = sheet.getLastRow();
+          dbSheet.appendRow(rVals);
+          var newRowNumber = dbSheet.getLastRow();
           if (recId) idToRowMap[recId] = newRowNumber;
           if (memId) idToRowMap[memId] = newRowNumber;
           createdCount++;
@@ -849,11 +1044,11 @@ function doPost(e) {
         notes: "Koneksi Web App dan Google Sheet telah berhasil 100%!"
       };
       var testRow = mapDataToRow(testData);
-      sheet.appendRow(testRow);
+      dbSheet.appendRow(testRow);
       return ContentService.createTextOutput(JSON.stringify({
         status: "success",
         action: "TEST",
-        row: sheet.getLastRow()
+        row: dbSheet.getLastRow()
       })).setMimeType(ContentService.MimeType.JSON);
     }
 
@@ -867,7 +1062,7 @@ function doPost(e) {
     if (action === "UPDATE" || targetRow > 1) {
       if (targetRow > 1) {
         // UPDATE baris lama
-        sheet.getRange(targetRow, 1, 1, rowValues.length).setValues([rowValues]);
+        dbSheet.getRange(targetRow, 1, 1, rowValues.length).setValues([rowValues]);
         return ContentService.createTextOutput(JSON.stringify({
           status: "success",
           action: "UPDATE",
@@ -877,11 +1072,11 @@ function doPost(e) {
     }
 
     // CREATE baris baru
-    sheet.appendRow(rowValues);
+    dbSheet.appendRow(rowValues);
     return ContentService.createTextOutput(JSON.stringify({
       status: "success",
       action: "CREATE",
-      row: sheet.getLastRow()
+      row: dbSheet.getLastRow()
     })).setMimeType(ContentService.MimeType.JSON);
 
   } catch (err) {
@@ -894,9 +1089,11 @@ function doPost(e) {
 
 // Fungsi opsional untuk uji coba langsung di editor Apps Script (Klik "Run" pada fungsi ini)
 function TEST_RUN_DARI_APPS_SCRIPT() {
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = getDatabaseSheet(ss);
   ensureHeader(sheet);
   sheet.appendRow(["rec-manual-test", new Date(), new Date(), "member", "member", "Uji Coba Manual Apps Script", "male", "", "", "TCC-MANUAL"]);
   Logger.log("Berhasil menulis baris tes manual! Periksa spreadsheet Anda sekarang.");
 }
 `;
+

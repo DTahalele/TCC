@@ -1,6 +1,7 @@
-import React from 'react';
-import { Database, FileText, Moon, Sun, Printer, Settings } from 'lucide-react';
+import React, { useState } from 'react';
+import { Database, FileText, Moon, Sun, Printer, Settings, User, LogOut } from 'lucide-react';
 import { TCCLogo } from './TCCLogo';
+import { WhitelistUser } from '../types/auth';
 
 interface HeaderProps {
   currentTab: 'form' | 'archive';
@@ -13,6 +14,8 @@ interface HeaderProps {
   isSheetConnected?: boolean;
   hasSheetUrl?: boolean;
   onToggleConnection?: () => void;
+  currentUser?: WhitelistUser | null;
+  onLogout?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -23,7 +26,11 @@ export const Header: React.FC<HeaderProps> = ({
   setDarkMode,
   onOpenGoogleSheetModal,
   onPrint,
+  currentUser,
+  onLogout,
 }) => {
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
   return (
     <header className="sticky top-0 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 transition-colors">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3.5 flex flex-wrap items-center justify-between gap-3">
@@ -126,8 +133,77 @@ export const Header: React.FC<HeaderProps> = ({
               </>
             )}
           </button>
+
+          {/* Current User Badge & Logout */}
+          {currentUser && (
+            <div className="flex items-center gap-1.5 pl-1.5 border-l border-slate-200 dark:border-slate-700">
+              <div
+                className="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 text-xs"
+                title={`Login sebagai: ${currentUser.nama} (${currentUser.email})`}
+              >
+                <div className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-[10px] shrink-0">
+                  {currentUser.nama ? currentUser.nama.charAt(0).toUpperCase() : 'U'}
+                </div>
+                <div className="hidden md:flex flex-col text-left">
+                  <span className="font-bold text-[11px] leading-tight truncate max-w-[120px]">
+                    {currentUser.nama}
+                  </span>
+                  {currentUser.peran && (
+                    <span className="text-[9px] text-emerald-600 dark:text-emerald-400 leading-tight">
+                      {currentUser.peran}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Logout Button */}
+              {onLogout && (
+                <button
+                  type="button"
+                  onClick={() => setShowLogoutConfirm(true)}
+                  className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-transparent hover:border-rose-200 dark:hover:border-rose-800/50 transition-colors"
+                  title="Keluar / Logout Akun"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Confirmation Modal Logout */}
+      {showLogoutConfirm && onLogout && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-sm w-full p-5 shadow-2xl">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+              Konfirmasi Keluar (Logout)
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+              Apakah Anda yakin ingin keluar dari sesi formulir ini? Anda perlu memasukkan email & PIN kembali untuk mengakses formulir.
+            </p>
+            <div className="flex items-center justify-end gap-2.5 mt-5">
+              <button
+                type="button"
+                onClick={() => setShowLogoutConfirm(false)}
+                className="px-3 py-1.5 text-xs font-semibold rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowLogoutConfirm(false);
+                  onLogout();
+                }}
+                className="px-3.5 py-1.5 text-xs font-bold rounded-xl bg-rose-600 text-white hover:bg-rose-700 shadow-xs"
+              >
+                Ya, Keluar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 };
