@@ -247,6 +247,14 @@ export function deleteStoredRecord(id: string): ScoreCardRecord[] {
   return filtered;
 }
 
+export function setStoredRecords(records: ScoreCardRecord[]): void {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+  } catch (e) {
+    console.error('Failed setting records in localStorage:', e);
+  }
+}
+
 export function getGoogleSheetUrl(): string {
   return (
     localStorage.getItem(GOOGLE_SHEET_URL_KEY) ||

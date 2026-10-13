@@ -29,7 +29,7 @@ import {
   isDatabaseConnected,
   setDatabaseConnected,
 } from './utils/storage';
-import { syncRecordToGoogleSheet, syncAllRecordsToGoogleSheet } from './utils/googleSheets';
+import { syncRecordToGoogleSheet, syncAllRecordsToGoogleSheet, fetchRecordsFromGoogleSheet } from './utils/googleSheets';
 
 import { Header } from './components/Header';
 import { EntryTypeSelector } from './components/EntryTypeSelector';
@@ -100,15 +100,24 @@ export default function App() {
   // Submission / sync state
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isRefreshingArchive, setIsRefreshingArchive] = useState(false);
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'info' | 'error' } | null>(null);
 
   // Dedicated state for isolated single-customer scorecard printing
   const [recordToPrint, setRecordToPrint] = useState<ScoreCardRecord | null>(null);
 
-  // Initialize records on mount
+  // Initialize records on mount & auto-sync from Google Sheet database if available
   useEffect(() => {
     const loaded = getStoredRecords();
     setRecords(loaded);
+
+    if (hasGoogleSheetUrlConfigured()) {
+      fetchRecordsFromGoogleSheet().then((res) => {
+        if (res.success && res.records.length > 0) {
+          setRecords(res.records);
+        }
+      });
+    }
   }, []);
 
   // Sync dark mode class and persist to localStorage
@@ -153,6 +162,17 @@ export default function App() {
       });
     }
   }, [authSession]);
+
+  // Otomatis sinkronkan riwayat arsip dari database Google Sheet saat user login atau membuka tab Arsip
+  useEffect(() => {
+    if (authSession && hasGoogleSheetUrlConfigured()) {
+      fetchRecordsFromGoogleSheet().then((res) => {
+        if (res.success && res.records.length > 0) {
+          setRecords(res.records);
+        }
+      });
+    }
+  }, [authSession, currentTab]);
 
   const handleLogout = () => {
     performLogout();
@@ -568,6 +588,48 @@ export default function App() {
     }
   };
 
+  // Tarik data arsip terbaru dari Google Sheet secara manual / on-demand
+  const handleRefreshArchiveFromDatabase = async () => {
+    if (!hasGoogleSheetUrlConfigured()) {
+      setIsGoogleSheetModalOpen(true);
+      setToastMessage({
+        text: 'URL Web App Google Apps Script belum dikonfigurasi. Masukkan URL pada jendela pengaturan.',
+        type: 'error',
+      });
+      return;
+    }
+
+    setIsRefreshingArchive(true);
+    try {
+      const res = await fetchRecordsFromGoogleSheet();
+      if (res.success) {
+        setRecords(res.records);
+        confetti({
+          particleCount: 60,
+          spread: 60,
+          origin: { y: 0.6 },
+        });
+        setToastMessage({
+          text: `✓ ${res.message}`,
+          type: 'success',
+        });
+      } else {
+        setToastMessage({
+          text: `Menggunakan data arsip lokal (${records.length} data). ${res.message}`,
+          type: 'info',
+        });
+      }
+    } catch (e) {
+      console.error('Error refreshing archive from database:', e);
+      setToastMessage({
+        text: 'Gagal menghubungi database Google Sheet.',
+        type: 'error',
+      });
+    } finally {
+      setIsRefreshingArchive(false);
+    }
+  };
+
   // Compute live completion indicator
   const completionStatus = useMemo(() => computeCompletion(formData), [formData]);
 
@@ -685,6 +747,8 @@ export default function App() {
               onPrintRecord={handlePrintSpecificRecord}
               onDeleteRecord={handleDeleteRecord}
               onSyncToDatabase={handleSyncAllToDatabase}
+              onRefreshFromDatabase={handleRefreshArchiveFromDatabase}
+              isRefreshing={isRefreshingArchive}
               isSyncing={isSyncing}
               isSheetConnected={isSheetConnected}
               hasSheetUrl={hasSheetUrl}
@@ -874,6 +938,8 @@ export default function App() {
         onPrintRecord={handlePrintSpecificRecord}
         onDeleteRecord={handleDeleteRecord}
         onSyncToDatabase={handleSyncAllToDatabase}
+        onRefreshFromDatabase={handleRefreshArchiveFromDatabase}
+        isRefreshing={isRefreshingArchive}
         isSyncing={isSyncing}
         isSheetConnected={isSheetConnected}
         hasSheetUrl={hasSheetUrl}

@@ -1,5 +1,5 @@
 import { ScoreCardRecord } from '../types/scoreCard';
-import { getGoogleSheetUrl } from './storage';
+import { getGoogleSheetUrl, getStoredRecords, setStoredRecords } from './storage';
 
 export interface SyncResult {
   success: boolean;
@@ -217,6 +217,131 @@ export async function syncAllRecordsToGoogleSheet(
       syncedCount: 0,
     };
   }
+}
+
+/**
+ * Tarik / sinkronkan seluruh baris data dari tab "Database" di Google Sheet ke Web App.
+ * Memastikan semua pengguna / pelatih melihat arsip yang sama dan terpusat saat login atau membuka aplikasi.
+ */
+export async function fetchRecordsFromGoogleSheet(): Promise<{
+  success: boolean;
+  records: ScoreCardRecord[];
+  message: string;
+}> {
+  const webhookUrl = getGoogleSheetUrl();
+  if (!webhookUrl || !webhookUrl.trim()) {
+    return {
+      success: false,
+      records: getStoredRecords(),
+      message: 'URL Google Apps Script belum dikonfigurasi. Menggunakan cache data lokal.',
+    };
+  }
+
+  try {
+    const targetUrl = new URL(webhookUrl.trim());
+    targetUrl.searchParams.set('action', 'GET_RECORDS');
+    targetUrl.searchParams.set('t', Date.now().toString());
+
+    const res = await fetch(targetUrl.toString(), {
+      method: 'GET',
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data && Array.isArray(data.records)) {
+        const rawList = data.records;
+        const cleanList: ScoreCardRecord[] = rawList.map((item: any, idx: number) => {
+          return {
+            id: String(item.id || item.record_id || `rec-sheet-${idx + 1}`),
+            createdAt: item.createdAt || item.created_at || new Date().toISOString(),
+            updatedAt: item.updatedAt || item.updated_at || new Date().toISOString(),
+            entry_type: (item.entry_type || 'member') as any,
+            Customer_type: (item.Customer_type || item.customer_type || 'member') as any,
+            Full_Name: String(
+              item.Full_Name ||
+              item.full_name ||
+              item.fullName ||
+              (item.MemberID ? `Member ${item.MemberID}` : 'Peserta')
+            ).trim(),
+            Gender: (item.Gender || item.gender || '') as any,
+            DoB: String(item.DoB || item.dob || ''),
+            Umur: item.Umur !== null && item.Umur !== undefined && item.Umur !== '' ? Number(item.Umur) : null,
+            MemberID: String(item.MemberID || item.member_id || item.memberId || ''),
+            Test_Date: String(item.Test_Date || item.test_date || ''),
+            Coaches: String(item.Coaches || item.coaches || ''),
+            wing_span: item.wing_span !== null && item.wing_span !== undefined && item.wing_span !== '' ? Number(item.wing_span) : null,
+            chest: item.chest !== null && item.chest !== undefined && item.chest !== '' ? Number(item.chest) : null,
+            left_arm: item.left_arm !== null && item.left_arm !== undefined && item.left_arm !== '' ? Number(item.left_arm) : null,
+            right_arm: item.right_arm !== null && item.right_arm !== undefined && item.right_arm !== '' ? Number(item.right_arm) : null,
+            waist: item.waist !== null && item.waist !== undefined && item.waist !== '' ? Number(item.waist) : null,
+            hips: item.hips !== null && item.hips !== undefined && item.hips !== '' ? Number(item.hips) : null,
+            left_thigh: item.left_thigh !== null && item.left_thigh !== undefined && item.left_thigh !== '' ? Number(item.left_thigh) : null,
+            right_tight: item.right_tight !== null && item.right_tight !== undefined && item.right_tight !== '' ? Number(item.right_tight) : null,
+            left_calf: item.left_calf !== null && item.left_calf !== undefined && item.left_calf !== '' ? Number(item.left_calf) : null,
+            right_calf: item.right_calf !== null && item.right_calf !== undefined && item.right_calf !== '' ? Number(item.right_calf) : null,
+            body_fat: item.body_fat !== null && item.body_fat !== undefined && item.body_fat !== '' ? Number(item.body_fat) : null,
+            muscle_mass: item.muscle_mass !== null && item.muscle_mass !== undefined && item.muscle_mass !== '' ? Number(item.muscle_mass) : null,
+            height: item.height !== null && item.height !== undefined && item.height !== '' ? Number(item.height) : null,
+            weight: item.weight !== null && item.weight !== undefined && item.weight !== '' ? Number(item.weight) : null,
+            BMI: item.BMI !== null && item.BMI !== undefined && item.BMI !== '' ? Number(item.BMI) : null,
+            cat_bmi: String(item.cat_bmi || item.category_bmi || ''),
+            score_deepSquat: item.score_deepSquat || item.score_deep_squat || null,
+            cat_deepSquat: String(item.cat_deepSquat || item.cat_deep_squat || ''),
+            score_hurdleStep: item.score_hurdleStep || item.score_hurdle_step || null,
+            cat_hurdleStep: String(item.cat_hurdleStep || item.cat_hurdle_step || ''),
+            score_inlineLunge: item.score_inlineLunge || item.score_inline_lunge || null,
+            cat_inlineLunge: String(item.cat_inlineLunge || item.cat_inline_lunge || ''),
+            score_balance: item.score_balance || null,
+            cat_balance: String(item.cat_balance || ''),
+            score_landing: item.score_landing || null,
+            cat_landing: String(item.cat_landing || ''),
+            avg_functional: item.avg_functional !== null && item.avg_functional !== undefined && item.avg_functional !== '' ? Number(item.avg_functional) : null,
+            score_lowerbody: item.score_lowerbody || item.score_lower_body || null,
+            cat_lowerbody: String(item.cat_lowerbody || item.cat_lower_body || ''),
+            score_unilateralStrenght: item.score_unilateralStrenght || item.score_unilateral_strength || null,
+            cat_unilateralStrenght: String(item.cat_unilateralStrenght || item.cat_unilateral_strength || ''),
+            score_posteriorChain: item.score_posteriorChain || item.score_posterior_chain || null,
+            cat_posteriorChain: String(item.cat_posteriorChain || item.cat_posterior_chain || ''),
+            score_upperBody: item.score_upperBody || item.score_upper_body || null,
+            cat_upperBody: String(item.cat_upperBody || item.cat_upper_body || ''),
+            score_core: item.score_core || null,
+            cat_core: String(item.cat_core || ''),
+            score_conditioning: item.score_conditioning || null,
+            cat_conditioning: String(item.cat_conditioning || ''),
+            avg_strength: item.avg_strength !== null && item.avg_strength !== undefined && item.avg_strength !== '' ? Number(item.avg_strength) : null,
+            score_power: item.score_power || null,
+            cat_power: String(item.cat_power || ''),
+            score_speed: item.score_speed || null,
+            cat_speed: String(item.cat_speed || ''),
+            score_agility: item.score_agility || null,
+            cat_agility: String(item.cat_agility || ''),
+            score_flexibility: item.score_flexibility || null,
+            cat_flexibility: String(item.cat_flexibility || ''),
+            score_coordination: item.score_coordination || null,
+            cat_coordination: String(item.cat_coordination || ''),
+            avg_skill: item.avg_skill !== null && item.avg_skill !== undefined && item.avg_skill !== '' ? Number(item.avg_skill) : null,
+            notes: String(item.notes || ''),
+          };
+        });
+
+        // Simpan hasil sinkronisasi ke penyimpanan lokal agar cepat dan bisa offline
+        setStoredRecords(cleanList);
+        return {
+          success: true,
+          records: cleanList,
+          message: `Berhasil menyinkronkan ${cleanList.length} data riwayat dari database Google Sheet!`,
+        };
+      }
+    }
+  } catch (err) {
+    console.info('Pemberitahuan: Belum dapat memuat data via koneksi langsung Google Sheet, memuat data tersimpan:', err);
+  }
+
+  return {
+    success: false,
+    records: getStoredRecords(),
+    message: 'Menggunakan data arsip lokal.',
+  };
 }
 
 /**
@@ -820,12 +945,137 @@ function mapDataToRow(d) {
   ];
 }
 
+function readDatabaseRecords(ss) {
+  var sheet = getDatabaseSheet(ss);
+  if (!sheet) return [];
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return [];
+  var lastCol = Math.max(sheet.getLastColumn(), 64);
+
+  var values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+  var records = [];
+
+  for (var i = 0; i < values.length; i++) {
+    var row = values[i];
+    var recId = String(row[0] || "").trim();
+    var fullName = String(row[5] || "").trim();
+    var memberId = String(row[9] || "").trim();
+
+    // Abaikan jika baris kosong sepenuhnya
+    if (!recId && !fullName && !memberId) continue;
+
+    function toNum(v) {
+      if (v === "" || v === null || v === undefined) return null;
+      var n = Number(v);
+      return isNaN(n) ? null : n;
+    }
+    function toScore(v) {
+      var n = toNum(v);
+      return (n === 1 || n === 2 || n === 3 || n === 4) ? n : null;
+    }
+    function toDateStr(v) {
+      if (!v) return "";
+      if (v instanceof Date) {
+        var y = v.getFullYear();
+        var m = ("0" + (v.getMonth() + 1)).slice(-2);
+        var d = ("0" + v.getDate()).slice(-2);
+        return y + "-" + m + "-" + d;
+      }
+      return String(v).split("T")[0];
+    }
+    function toIso(v) {
+      if (!v) return new Date().toISOString();
+      if (v instanceof Date) return v.toISOString();
+      return String(v);
+    }
+
+    records.push({
+      id: recId || ("rec-sheet-" + (i + 1)),
+      createdAt: toIso(row[1]),
+      updatedAt: toIso(row[2]),
+      entry_type: String(row[3] || "member").toLowerCase(),
+      Customer_type: String(row[4] || "member").toLowerCase(),
+      Full_Name: fullName || (memberId ? ("Member " + memberId) : "Peserta"),
+      Gender: String(row[6] || "").toLowerCase(),
+      DoB: toDateStr(row[7]),
+      Umur: toNum(row[8]),
+      MemberID: memberId || "",
+      Test_Date: toDateStr(row[10]),
+      Coaches: String(row[11] || ""),
+      wing_span: toNum(row[12]),
+      chest: toNum(row[13]),
+      left_arm: toNum(row[14]),
+      right_arm: toNum(row[15]),
+      waist: toNum(row[16]),
+      hips: toNum(row[17]),
+      left_thigh: toNum(row[18]),
+      right_tight: toNum(row[19]),
+      left_calf: toNum(row[20]),
+      right_calf: toNum(row[21]),
+      body_fat: toNum(row[22]),
+      muscle_mass: toNum(row[23]),
+      height: toNum(row[24]),
+      weight: toNum(row[25]),
+      BMI: toNum(row[26]),
+      cat_bmi: String(row[27] || ""),
+      score_deepSquat: toScore(row[28]),
+      cat_deepSquat: String(row[29] || ""),
+      score_hurdleStep: toScore(row[30]),
+      cat_hurdleStep: String(row[31] || ""),
+      score_inlineLunge: toScore(row[32]),
+      cat_inlineLunge: String(row[33] || ""),
+      score_balance: toScore(row[34]),
+      cat_balance: String(row[35] || ""),
+      score_landing: toScore(row[36]),
+      cat_landing: String(row[37] || ""),
+      avg_functional: toNum(row[38]),
+      score_lowerbody: toScore(row[39]),
+      cat_lowerbody: String(row[40] || ""),
+      score_unilateralStrenght: toScore(row[41]),
+      cat_unilateralStrenght: String(row[42] || ""),
+      score_posteriorChain: toScore(row[43]),
+      cat_posteriorChain: String(row[44] || ""),
+      score_upperBody: toScore(row[45]),
+      cat_upperBody: String(row[46] || ""),
+      score_core: toScore(row[47]),
+      cat_core: String(row[48] || ""),
+      score_conditioning: toScore(row[49]),
+      cat_conditioning: String(row[50] || ""),
+      avg_strength: toNum(row[51]),
+      score_power: toScore(row[52]),
+      cat_power: String(row[53] || ""),
+      score_speed: toScore(row[54]),
+      cat_speed: String(row[55] || ""),
+      score_agility: toScore(row[56]),
+      cat_agility: String(row[57] || ""),
+      score_flexibility: toScore(row[58]),
+      cat_flexibility: String(row[59] || ""),
+      score_coordination: toScore(row[60]),
+      cat_coordination: String(row[61] || ""),
+      avg_skill: toNum(row[62]),
+      notes: String(row[63] || "")
+    });
+  }
+
+  return records;
+}
+
 // Untuk tes buka URL langsung di browser / verifikasi GET
 function doGet(e) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var pAction = (e && e.parameter && e.parameter.action) ? String(e.parameter.action).trim() : "";
 
-  // 1. GET WHITELIST USERS
+  // 1. GET ALL RECORDS (SINKRONISASI ARSIP KE SELURUH USER)
+  if (pAction === "GET_RECORDS" || pAction === "GET_DATABASE") {
+    var dbRecs = readDatabaseRecords(ss);
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "success",
+      total: dbRecs.length,
+      records: dbRecs
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // 2. GET WHITELIST USERS
   if (pAction === "GET_WHITELIST") {
     var users = readWhitelistUsers(ss);
     return ContentService.createTextOutput(JSON.stringify({
@@ -979,6 +1229,16 @@ function doPost(e) {
         status: "success",
         total: users.length,
         users: users
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // 0.C GET RECORDS VIA POST (SINKRONISASI ARSIP)
+    if (action === "GET_RECORDS" || action === "GET_DATABASE") {
+      var dbRecs = readDatabaseRecords(ss);
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "success",
+        total: dbRecs.length,
+        records: dbRecs
       })).setMimeType(ContentService.MimeType.JSON);
     }
 

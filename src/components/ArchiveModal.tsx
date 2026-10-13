@@ -31,6 +31,8 @@ interface ArchiveModalProps {
   onPrintRecord: (record: ScoreCardRecord) => void;
   onDeleteRecord: (id: string) => void;
   onSyncToDatabase: () => Promise<void>;
+  onRefreshFromDatabase?: () => Promise<void>;
+  isRefreshing?: boolean;
   isSyncing: boolean;
   isSheetConnected: boolean;
   hasSheetUrl: boolean;
@@ -46,6 +48,8 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
   onPrintRecord,
   onDeleteRecord,
   onSyncToDatabase,
+  onRefreshFromDatabase,
+  isRefreshing = false,
   isSyncing,
   isSheetConnected,
   hasSheetUrl,
@@ -235,11 +239,29 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
             </button>
           </div>
 
+          {/* Refresh / Tarik Data Terbaru dari Database Google Sheet */}
+          {hasSheetUrl && onRefreshFromDatabase && (
+            <button
+              type="button"
+              onClick={onRefreshFromDatabase}
+              disabled={isRefreshing || isSyncing}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition-all shadow-sm shrink-0 cursor-pointer ${
+                isRefreshing
+                  ? 'bg-sky-700 text-white opacity-85 cursor-not-allowed'
+                  : 'bg-sky-600 hover:bg-sky-700 active:scale-98 text-white ring-2 ring-sky-500/20'
+              }`}
+              title="Ambil dan sinkronkan data arsip terbaru yang telah di-input oleh pengguna atau pelatih lain langsung dari database Google Sheet"
+            >
+              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              <span>{isRefreshing ? 'Memuat Data Terbaru...' : 'Refresh dari Database'}</span>
+            </button>
+          )}
+
           {/* Sync to Database Button (Direct sync without modal redirect) */}
           <button
             type="button"
             onClick={onSyncToDatabase}
-            disabled={isSyncing}
+            disabled={isSyncing || isRefreshing}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition-all shadow-sm shrink-0 cursor-pointer ${
               isSyncing
                 ? 'bg-emerald-700 text-white opacity-85 cursor-not-allowed'
