@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
-import { Database, FileText, Moon, Sun, Settings, User, LogOut } from 'lucide-react';
+import { Database, FileText, Moon, Sun, Settings, User, LogOut, CalendarCheck } from 'lucide-react';
 import { TCCLogo } from './TCCLogo';
 import { WhitelistUser } from '../types/auth';
 
 interface HeaderProps {
-  currentTab: 'form' | 'archive';
-  setCurrentTab: (tab: 'form' | 'archive') => void;
+  currentTab: 'form' | 'archive' | 'upcoming_trial';
+  setCurrentTab: (tab: 'form' | 'archive' | 'upcoming_trial') => void;
   archiveCount: number;
+  upcomingTrialCount?: number;
+  upcomingTodayCount?: number;
   darkMode: boolean;
   setDarkMode: (val: boolean) => void;
   onOpenGoogleSheetModal: () => void;
@@ -22,6 +24,8 @@ export const Header: React.FC<HeaderProps> = ({
   currentTab,
   setCurrentTab,
   archiveCount,
+  upcomingTrialCount = 0,
+  upcomingTodayCount = 0,
   darkMode,
   setDarkMode,
   onOpenGoogleSheetModal,
@@ -86,6 +90,30 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200">
               {archiveCount}
             </span>
+          </button>
+
+          {/* UPCOMING TRIAL Tab (Disisipkan persis sesudah tab Arsip dengan Indikator Notifikasi Modern) */}
+          <button
+            type="button"
+            onClick={() => setCurrentTab('upcoming_trial')}
+            className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              currentTab === 'upcoming_trial'
+                ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm'
+                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+          >
+            <CalendarCheck className="w-3.5 h-3.5 text-rose-500" />
+            <span>Upcoming Trial</span>
+            {upcomingTrialCount > 0 && (
+              <span className={`ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-extrabold flex items-center gap-1 ${
+                upcomingTodayCount > 0
+                  ? 'bg-rose-600 text-white animate-pulse'
+                  : 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border border-rose-300 dark:border-rose-800'
+              }`}>
+                {upcomingTodayCount > 0 && <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />}
+                <span>{upcomingTrialCount}</span>
+              </span>
+            )}
           </button>
 
           {/* Dark / Light Mode Toggle */}

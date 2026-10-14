@@ -48,6 +48,21 @@ import { GoogleSheetModal } from './components/GoogleSheetModal';
 import { BMICalculatorModal } from './components/BMICalculatorModal';
 import { PrintView } from './components/PrintView';
 import { AuthGate } from './components/AuthGate';
+import { UpcomingTrialTab } from './components/UpcomingTrialTab';
+import { TrialRegistrationModal } from './components/TrialRegistrationModal';
+import { TrialReviewModal } from './components/TrialReviewModal';
+import { TrialConfirmationPrintView } from './components/TrialConfirmationPrintView';
+import { TrialRegistrationRecord, TrialCustomerType } from './types/trialRegistration';
+import {
+  getStoredTrials,
+  saveNewTrial,
+  updateExistingTrial,
+  deleteStoredTrial,
+  getUpcomingTrialsWindow,
+  syncTrialToGoogleSheet,
+  syncAllTrialsToGoogleSheet,
+  fetchTrialsFromGoogleSheet,
+} from './utils/trialStorage';
 import { WhitelistUser, AuthSession } from './types/auth';
 import {
   getCurrentSession,
@@ -75,7 +90,7 @@ export default function App() {
   });
 
   // Tab & Modal states
-  const [currentTab, setCurrentTab] = useState<'form' | 'archive'>('form');
+  const [currentTab, setCurrentTab] = useState<'form' | 'archive' | 'upcoming_trial'>('form');
   const [isArchiveModalOpen, setIsArchiveModalOpen] = useState(false);
   const [isMemberPickerOpen, setIsMemberPickerOpen] = useState(false);
   const [isGoogleSheetModalOpen, setIsGoogleSheetModalOpen] = useState(false);
@@ -83,6 +98,19 @@ export default function App() {
 
   // Stored Records
   const [records, setRecords] = useState<ScoreCardRecord[]>([]);
+
+  // Trial Registrations State
+  const [trials, setTrials] = useState<TrialRegistrationRecord[]>(() => getStoredTrials());
+  const [isTrialRegistrationModalOpen, setIsTrialRegistrationModalOpen] = useState(false);
+  const [isTrialReviewModalOpen, setIsTrialReviewModalOpen] = useState(false);
+  const [isTrialPrintOpen, setIsTrialPrintOpen] = useState(false);
+  const [selectedTrialForReview, setSelectedTrialForReview] = useState<TrialRegistrationRecord | null>(null);
+  const [selectedTrialForPrint, setSelectedTrialForPrint] = useState<TrialRegistrationRecord | null>(null);
+  const [editingTrialRecord, setEditingTrialRecord] = useState<TrialRegistrationRecord | null>(null);
+  const [trialRegistrationType, setTrialRegistrationType] = useState<TrialCustomerType>('Trial Adults');
+
+  // Compute live upcoming trial metrics (window 7 hari & hari ini)
+  const upcomingMetrics = useMemo(() => getUpcomingTrialsWindow(trials), [trials]);
 
   // Form State
   const [formData, setFormData] = useState<ScoreCardRecord>(() => ({
@@ -101,6 +129,7 @@ export default function App() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isRefreshingArchive, setIsRefreshingArchive] = useState(false);
+  const [isSyncingTrials, setIsSyncingTrials] = useState(false);
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'info' | 'error' } | null>(null);
 
   // Dedicated state for isolated single-customer scorecard printing
@@ -163,12 +192,17 @@ export default function App() {
     }
   }, [authSession]);
 
-  // Otomatis sinkronkan riwayat arsip dari database Google Sheet saat user login atau membuka tab Arsip
+  // Otomatis sinkronkan riwayat arsip & trial dari database Google Sheet saat user login atau berpindah tab
   useEffect(() => {
     if (authSession && hasGoogleSheetUrlConfigured()) {
       fetchRecordsFromGoogleSheet().then((res) => {
         if (res.success && res.records.length > 0) {
           setRecords(res.records);
+        }
+      });
+      fetchTrialsFromGoogleSheet().then((res) => {
+        if (res.success && res.trials.length > 0) {
+          setTrials(res.trials);
         }
       });
     }
@@ -360,10 +394,78 @@ export default function App() {
     });
   };
 
-  // Mode 2: New User (Trial)
+  // Mode 2: New User (Trial) - Open Digital Registration Modal / Upcoming Trial
   const handleSelectNewUser = () => {
     setIsEditing(false);
     setEditingRowOriginalId(null);
+    handleAddNewTrial('Trial Adults');
+  };
+
+  // Trial Handlers
+  const handleAddNewTrial = (type: TrialCustomerType = 'Trial Adults') => {
+    setTrialRegistrationType(type);
+    setEditingTrialRecord(null);
+    setIsTrialRegistrationModalOpen(true);
+  };
+
+  const handleSaveTrial = (record: TrialRegistrationRecord) => {
+    if (editingTrialRecord) {
+      const updated = updateExistingTrial(record);
+      setTrials(updated);
+      setToastMessage({
+        text: `✓ Data trial ${record.Full_Name} berhasil diperbarui!`,
+        type: 'success',
+      });
+    } else {
+      const updated = saveNewTrial(record);
+      setTrials(updated);
+      confetti({
+        particleCount: 75,
+        spread: 70,
+        origin: { y: 0.6 },
+      });
+      setToastMessage({
+        text: `✓ Registrasi ${record.Full_Name} (${record.Customer_type}) berhasil disimpan & masuk ke Upcoming Trial!`,
+        type: 'success',
+      });
+    }
+    syncTrialToGoogleSheet(record);
+    setIsTrialRegistrationModalOpen(false);
+    setEditingTrialRecord(null);
+  };
+
+  const handleReviewTrial = (trial: TrialRegistrationRecord) => {
+    setSelectedTrialForReview(trial);
+    setIsTrialReviewModalOpen(true);
+  };
+
+  const handlePrintTrialConfirmation = (trial: TrialRegistrationRecord) => {
+    setSelectedTrialForPrint(trial);
+    setIsTrialPrintOpen(true);
+  };
+
+  const handleEditTrial = (trial: TrialRegistrationRecord) => {
+    setEditingTrialRecord(trial);
+    setTrialRegistrationType(trial.Customer_type);
+    setIsTrialReviewModalOpen(false);
+    setIsTrialRegistrationModalOpen(true);
+  };
+
+  const handleDeleteTrial = (id: string) => {
+    const updated = deleteStoredTrial(id);
+    setTrials(updated);
+    setToastMessage({
+      text: 'Data trial berhasil dihapus dari daftar Upcoming Trial.',
+      type: 'info',
+    });
+  };
+
+  const handleStartTrialSession = (trial: TrialRegistrationRecord) => {
+    setIsEditing(false);
+    setEditingRowOriginalId(null);
+    setIsTrialReviewModalOpen(false);
+
+    // Auto populate Scorecard Form from Trial Registration
     setFormData({
       ...INITIAL_RECORD,
       id: `rec-${Date.now()}`,
@@ -371,13 +473,108 @@ export default function App() {
       updatedAt: new Date().toISOString(),
       entry_type: 'trial',
       Customer_type: 'trial',
-      MemberID: generateMemberId(),
+      Full_Name: trial.Full_Name,
+      Gender: trial.Gender === 'Female' ? 'female' : 'male',
+      DoB: trial.DoB,
+      Umur: trial.Umur,
+      MemberID: trial.MemberID,
       Test_Date: new Date().toISOString().split('T')[0],
+      Coaches: trial.Coaches && trial.Coaches.length > 0 ? trial.Coaches[0] : '',
+      notes: trial.formadults_catatan
+        ? `Catatan Calon Member: ${trial.formadults_catatan}`
+        : trial.formadults_riwayat === 'Ada'
+        ? `Riwayat Cedera: ${trial.formadults_riwayat_detail || 'Ada'}`
+        : '',
     });
+
+    setCurrentTab('form');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    confetti({
+      particleCount: 50,
+      spread: 60,
+      origin: { y: 0.4 },
+    });
+
     setToastMessage({
-      text: 'Formulir Trial (New User) baru siap diisi.',
-      type: 'info',
+      text: `✓ Sesi Trial untuk ${trial.Full_Name} dimulai! Kategori 'Trial', Nama, DoB, dan Gender terisi otomatis. Pilih Coach yang bertugas.`,
+      type: 'success',
     });
+  };
+
+  const handleConvertToMember = (trial: TrialRegistrationRecord) => {
+    const updatedTrial: TrialRegistrationRecord = {
+      ...trial,
+      trial_status: 'Member TCC',
+      updatedAt: new Date().toISOString(),
+    };
+    const updatedTrials = updateExistingTrial(updatedTrial);
+    setTrials(updatedTrials);
+
+    // Also upgrade any existing scorecard with this MemberID to 'member'
+    const updatedRecords = records.map((r) => {
+      if (r.MemberID === trial.MemberID || r.Full_Name.toLowerCase() === trial.Full_Name.toLowerCase()) {
+        return {
+          ...r,
+          Customer_type: 'member' as CustomerType,
+          entry_type: 'member' as const,
+          updatedAt: new Date().toISOString(),
+        };
+      }
+      return r;
+    });
+    setRecords(updatedRecords);
+
+    confetti({
+      particleCount: 100,
+      spread: 80,
+      origin: { y: 0.5 },
+    });
+
+    setToastMessage({
+      text: `🎉 Sukses! ${trial.Full_Name} resmi di-upgrade menjadi MEMBER TCC!`,
+      type: 'success',
+    });
+  };
+
+  const handleSyncAllTrialsToDatabase = async () => {
+    if (!hasGoogleSheetUrlConfigured()) {
+      setIsGoogleSheetModalOpen(true);
+      setToastMessage({
+        text: 'URL Web App Google Apps Script belum dikonfigurasi. Masukkan URL pada jendela pengaturan.',
+        type: 'error',
+      });
+      return;
+    }
+
+    setIsSyncingTrials(true);
+    try {
+      const res = await syncAllTrialsToGoogleSheet(trials);
+      if (res.success) {
+        confetti({
+          particleCount: 85,
+          spread: 70,
+          origin: { y: 0.6 },
+        });
+        setToastMessage({
+          text: res.message,
+          type: 'success',
+        });
+      } else {
+        setToastMessage({
+          text: `✕ ${res.message}`,
+          type: 'error',
+        });
+      }
+    } catch (e) {
+      console.error('Error syncing all trials:', e);
+      setToastMessage({
+        text: 'Gagal menyinkronkan data trial ke Google Sheet.',
+        type: 'error',
+      });
+    } finally {
+      setIsSyncingTrials(false);
+    }
   };
 
   // Mode 3: Edit Exist Data
@@ -722,6 +919,8 @@ export default function App() {
         currentTab={currentTab}
         setCurrentTab={setCurrentTab}
         archiveCount={records.length}
+        upcomingTrialCount={upcomingMetrics.h7Trials.length}
+        upcomingTodayCount={upcomingMetrics.todayCount}
         darkMode={darkMode}
         setDarkMode={setDarkMode}
         onOpenGoogleSheetModal={() => setIsGoogleSheetModalOpen(true)}
@@ -753,6 +952,22 @@ export default function App() {
               isSheetConnected={isSheetConnected}
               hasSheetUrl={hasSheetUrl}
               onOpenGoogleSheetModal={() => setIsGoogleSheetModalOpen(true)}
+            />
+          </div>
+        ) : currentTab === 'upcoming_trial' ? (
+          /* Upcoming Trial Command Center View */
+          <div className="space-y-4">
+            <UpcomingTrialTab
+              trials={trials}
+              onAddNewTrial={handleAddNewTrial}
+              onReviewTrial={handleReviewTrial}
+              onStartTrialSession={handleStartTrialSession}
+              onPrintConfirmation={handlePrintTrialConfirmation}
+              onEditTrial={handleEditTrial}
+              onDeleteTrial={handleDeleteTrial}
+              onConvertToMember={handleConvertToMember}
+              onSyncAllTrialsToDatabase={handleSyncAllTrialsToDatabase}
+              isSyncingTrials={isSyncingTrials}
             />
           </div>
         ) : (
@@ -951,6 +1166,44 @@ export default function App() {
         isOpen={isBMIRefOpen}
         onClose={() => setIsBMIRefOpen(false)}
       />
+
+      {/* Modal: Form Registrasi Digital Trial (Kids & Adults) */}
+      <TrialRegistrationModal
+        isOpen={isTrialRegistrationModalOpen}
+        onClose={() => {
+          setIsTrialRegistrationModalOpen(false);
+          setEditingTrialRecord(null);
+        }}
+        onSave={handleSaveTrial}
+        initialType={trialRegistrationType}
+        editingTrial={editingTrialRecord}
+      />
+
+      {/* Modal: Lembar Review Profil & Riwayat Medis Calon Member */}
+      {selectedTrialForReview && (
+        <TrialReviewModal
+          trial={selectedTrialForReview}
+          isOpen={isTrialReviewModalOpen}
+          onClose={() => {
+            setIsTrialReviewModalOpen(false);
+            setSelectedTrialForReview(null);
+          }}
+          onStartTrialSession={handleStartTrialSession}
+          onPrintConfirmation={handlePrintTrialConfirmation}
+          onEditTrial={handleEditTrial}
+        />
+      )}
+
+      {/* Modal: Cetak Lembar Konfirmasi Sesi Trial (PDF WhatsApp) */}
+      {selectedTrialForPrint && isTrialPrintOpen && (
+        <TrialConfirmationPrintView
+          trial={selectedTrialForPrint}
+          onClose={() => {
+            setIsTrialPrintOpen(false);
+            setSelectedTrialForPrint(null);
+          }}
+        />
+      )}
     </div>
   );
 }

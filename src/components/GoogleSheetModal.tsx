@@ -21,6 +21,7 @@ import { getGoogleSheetUrl, setGoogleSheetUrl, verifyAdminPassword, setAdminPass
 import {
   GOOGLE_APPS_SCRIPT_TEMPLATE,
   sendTestRowToGoogleSheet,
+  sendTestRowToTrialSheet,
   runGoogleSheetDiagnostics,
   GoogleAppsScriptDiagnosticReport,
 } from '../utils/googleSheets';
@@ -45,6 +46,7 @@ export const GoogleSheetModal: React.FC<GoogleSheetModalProps> = ({
   const [url, setUrl] = useState(getGoogleSheetUrl());
   const [copied, setCopied] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [testingTrial, setTestingTrial] = useState(false);
   const [testResult, setTestResult] = useState<{ text: string; success: boolean } | null>(null);
 
   // Diagnostic tool state
@@ -155,6 +157,34 @@ export const GoogleSheetModal: React.FC<GoogleSheetModalProps> = ({
     }
   };
 
+  const handleSendTestRowTrial = async () => {
+    if (!url.trim()) {
+      setTestResult({
+        text: 'Silakan masukkan URL Web App Google Apps Script terlebih dahulu.',
+        success: false,
+      });
+      return;
+    }
+    setTestingTrial(true);
+    setTestResult(null);
+    try {
+      setGoogleSheetUrl(url);
+      onUrlUpdated();
+      const res = await sendTestRowToTrialSheet();
+      setTestResult({
+        text: res.message,
+        success: res.success,
+      });
+    } catch (err) {
+      setTestResult({
+        text: `Error saat pengujian trial: ${(err as Error).message}`,
+        success: false,
+      });
+    } finally {
+      setTestingTrial(false);
+    }
+  };
+
   const handleRunDiagnostic = async () => {
     if (!url.trim()) {
       setTestResult({
@@ -186,6 +216,18 @@ export const GoogleSheetModal: React.FC<GoogleSheetModalProps> = ({
   const handleOpenWebhookInNewTab = () => {
     if (!url.trim()) return;
     window.open(url.trim(), '_blank');
+  };
+
+  const handleTestTrialInBrowser = () => {
+    if (!url.trim()) return;
+    try {
+      const target = new URL(url.trim());
+      target.searchParams.set('action', 'TEST_TRIAL');
+      target.searchParams.set('t', Date.now().toString());
+      window.open(target.toString(), '_blank');
+    } catch {
+      window.open(url.trim() + '?action=TEST_TRIAL', '_blank');
+    }
   };
 
   return (
@@ -287,14 +329,49 @@ export const GoogleSheetModal: React.FC<GoogleSheetModalProps> = ({
             </div>
 
             <div className="flex flex-wrap gap-2 pt-1">
+              {/* Test Button 1: Kirim Tes ke Registrasi_Trial */}
+              <button
+                type="button"
+                onClick={handleSendTestRowTrial}
+                disabled={testingTrial || testing || isRunningDiagnostic}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-extrabold transition-all shadow-xs cursor-pointer"
+                title="Kirim 1 baris tes sampel khusus ke sheet Registrasi_Trial via POST"
+              >
+                <Send className={`w-3.5 h-3.5 ${testingTrial ? 'animate-pulse' : ''}`} />
+                <span>{testingTrial ? 'Mengirim Tes Trial...' : 'Kirim Tes ke "Registrasi_Trial"'}</span>
+              </button>
+
+              {/* Test Button 2: Tes Langsung di Tab Browser (GET) */}
+              <button
+                type="button"
+                onClick={handleTestTrialInBrowser}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-100 hover:bg-amber-200 dark:bg-amber-950/60 dark:hover:bg-amber-900/80 text-amber-900 dark:text-amber-200 text-xs font-bold transition-all border border-amber-300 dark:border-amber-700 shadow-2xs cursor-pointer"
+                title="Buka tes tulis langsung ke Registrasi_Trial di browser tab baru (GET)"
+              >
+                <ExternalLink className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400" />
+                <span>Tes Tulis Trial via Browser (GET)</span>
+              </button>
+
+              {/* Test Button 3: Khusus tab DataCustomer (Score Card) */}
               <button
                 type="button"
                 onClick={handleSendTestRow}
-                disabled={testing || isRunningDiagnostic}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-xs"
+                disabled={testing || testingTrial || isRunningDiagnostic}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
+                title="Kirim 1 baris tes sampel khusus ke sheet DataCustomer (Score Card)"
               >
-                <Send className={`w-3.5 h-3.5 ${testing ? 'animate-pulse' : ''}`} />
-                <span>{testing ? 'Mengirim Tes...' : 'Kirim 1 Baris Tes ("TCC-TEST") ke Sheet'}</span>
+                <Database className={`w-3.5 h-3.5 ${testing ? 'animate-pulse' : ''}`} />
+                <span>{testing ? 'Mengirim Tes Scorecard...' : 'Kirim Tes ke "DataCustomer"'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleOpenWebhookInNewTab}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold transition-colors border border-slate-200 dark:border-slate-700"
+                title="Periksa status kesiapan DataCustomer & Registrasi_Trial langsung di tab browser"
+              >
+                <ExternalLink className="w-3.5 h-3.5 text-slate-500" />
+                <span>Cek Respon Webhook di Browser</span>
               </button>
 
               <button
@@ -305,15 +382,6 @@ export const GoogleSheetModal: React.FC<GoogleSheetModalProps> = ({
               >
                 <Activity className={`w-3.5 h-3.5 ${isRunningDiagnostic ? 'animate-spin' : ''}`} />
                 <span>{isRunningDiagnostic ? 'Mendiagnosa HTTP & CORS...' : 'Diagnosa Respon HTTP & CORS'}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={handleOpenWebhookInNewTab}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold transition-colors border border-slate-200 dark:border-slate-700"
-              >
-                <ExternalLink className="w-3.5 h-3.5 text-slate-500" />
-                <span>Cek Respon Webhook di Browser</span>
               </button>
             </div>
 
@@ -466,7 +534,7 @@ export const GoogleSheetModal: React.FC<GoogleSheetModalProps> = ({
 
 
           {/* Tutorial Step-by-Step Header & Tombol Salin */}
-          <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+          <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-3">
             <div className="flex items-center justify-between py-1">
               <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-800 dark:text-slate-200">
                 Langkah Cepat Memperbarui Google Apps Script:
@@ -474,11 +542,54 @@ export const GoogleSheetModal: React.FC<GoogleSheetModalProps> = ({
               <button
                 type="button"
                 onClick={handleCopyCode}
-                className="flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-xs font-bold text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900 transition-colors cursor-pointer border border-emerald-300 dark:border-emerald-800"
               >
-                {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
                 <span>{copied ? 'Kode Tersalin!' : 'Salin Kode Script Terbaru'}</span>
               </button>
+            </div>
+
+            {/* Step-by-Step Guide Box */}
+            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-2.5 text-xs text-slate-700 dark:text-slate-300">
+              <div className="flex items-start gap-2.5">
+                <span className="w-5 h-5 rounded-full bg-emerald-600 text-white font-bold text-[11px] flex items-center justify-center shrink-0">1</span>
+                <div>
+                  <p className="font-bold text-slate-900 dark:text-white">Salin Kode & Tempel ke Apps Script</p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Klik tombol <strong>"Salin Kode Script Terbaru"</strong> di atas. Buka spreadsheet Anda &gt; <em>Extensions &gt; Apps Script</em>. Hapus seluruh isi kode lama di <code>Code.gs</code>, tempel kode baru ini, lalu klik ikon <strong>Simpan (Ctrl+S)</strong>.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2.5">
+                <span className="w-5 h-5 rounded-full bg-amber-500 text-slate-950 font-bold text-[11px] flex items-center justify-center shrink-0">2</span>
+                <div>
+                  <p className="font-bold text-slate-900 dark:text-white">WAJIB: Buat Versi Baru (New Version) saat Deploy</p>
+                  <p className="text-[11px] text-amber-800 dark:text-amber-300 leading-relaxed">
+                    Hanya klik Simpan (Ctrl+S) <strong>tidak akan memperbarui Web App URL</strong>! Agar kode baru aktif:
+                    <br />
+                    1. Klik tombol biru <strong>Deploy &gt; Manage deployments</strong> (Kelola deployment).
+                    <br />
+                    2. Klik ikon <strong>Pensil (Edit)</strong> pada deployment aktif Anda.
+                    <br />
+                    3. Pada menu dropdown <strong>Version</strong>, pilih <strong>"New version" (Versi Baru)</strong>.
+                    <br />
+                    4. Pastikan <em>Who has access</em> = <strong>Anyone (Siapa saja)</strong>.
+                    <br />
+                    5. Klik <strong>Deploy</strong>!
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2.5">
+                <span className="w-5 h-5 rounded-full bg-indigo-600 text-white font-bold text-[11px] flex items-center justify-center shrink-0">3</span>
+                <div>
+                  <p className="font-bold text-slate-900 dark:text-white">Apakah Perlu Menulis Kolom Manual di "Registrasi_Trial"?</p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                    <strong>TIDAK PERLU!</strong> Kode script terbaru sudah dirancang otomatis membuat 23 kolom header (A-W) berhuruf tebal begitu ada data pertama dikirim atau saat tombol tes di atas diklik.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>

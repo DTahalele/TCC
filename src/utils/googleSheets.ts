@@ -440,7 +440,7 @@ export async function sendTestRowToGoogleSheet(): Promise<SyncResult> {
 
     return {
       success: true,
-      message: 'Perintah tes tulis baris "TCC-TEST" telah dikirim ke Google Sheet! Silakan buka spreadsheet Anda untuk memeriksa apakah baris "TCC-TEST" muncul.',
+      message: 'Perintah tes tulis baris "TCC-TEST" telah dikirim ke Google Sheet! Silakan buka spreadsheet Anda untuk memeriksa apakah baris "TCC-TEST" muncul di tab DataCustomer.',
       actionUsed: 'TEST',
     };
   } catch (err) {
@@ -451,6 +451,77 @@ export async function sendTestRowToGoogleSheet(): Promise<SyncResult> {
     };
   }
 }
+
+/**
+ * Send a tangible test row specifically to the "Registrasi_Trial" sheet in Google Spreadsheet
+ */
+export async function sendTestRowToTrialSheet(): Promise<{
+  success: boolean;
+  message: string;
+  actionUsed: string;
+}> {
+  const webhookUrl = getGoogleSheetUrl();
+  if (!webhookUrl || !webhookUrl.trim()) {
+    return {
+      success: false,
+      message: 'URL Google Apps Script belum dikonfigurasi.',
+      actionUsed: 'NONE',
+    };
+  }
+
+  try {
+    const testPayload = {
+      action: 'TEST_TRIAL',
+      data: {
+        id: 'trial-test-' + Date.now(),
+        MemberID: 'TCC-TR-TEST',
+        Customer_type: 'Trial Adults',
+        Full_Name: 'TEST KONEKSI REGISTRASI TRIAL',
+        Gender: 'Male',
+        DoB: '1995-05-15',
+        Umur: 31,
+        Email: 'trial.test@example.com',
+        WhatsApp_Number: '+62 812-3456-7890',
+        Emergency_Contact: '+62 813-9876-5432',
+        Trial_Date: new Date().toISOString().split('T')[0],
+        Trial_Day: 'Hari Ini',
+        Trial_Time: '10:00',
+        Coaches: ['Mariskha Primasari'],
+        schedule_status: 'Confirmed',
+        trial_status: 'Menunggu Trial',
+        formadults_pekerjaan: 'Tester Sistem',
+        formadults_perusahaan: 'The Core Chamber',
+        formadults_kondisi: 'Sehat',
+        formadults_riwayat: 'Tidak Ada',
+        formadults_catatan: 'Baris ini adalah tes verifikasi bahwa tab Registrasi_Trial terhubung 100%. Anda dapat menghapus baris ini kapan saja.',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+    };
+
+    await fetch(webhookUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8',
+      },
+      body: JSON.stringify(testPayload),
+      mode: 'no-cors',
+    });
+
+    return {
+      success: true,
+      message: '✓ Perintah tes tulis baris "TCC-TR-TEST" telah dikirim ke sheet "Registrasi_Trial"! Buka tab Registrasi_Trial di spreadsheet Anda untuk memeriksa baris tes ini.',
+      actionUsed: 'TEST_TRIAL',
+    };
+  } catch (err) {
+    return {
+      success: false,
+      message: `Gagal mengirim tes: ${(err as Error).message}`,
+      actionUsed: 'TEST_TRIAL',
+    };
+  }
+}
+
 
 export interface DiagnosticProbeResult {
   probeName: string;
@@ -828,26 +899,50 @@ if (typeof window !== 'undefined') {
  * Handles doGet, doPost, CREATE, UPDATE, SYNC_ALL, TEST, and WHITELIST_USER authentication.
  */
 export const GOOGLE_APPS_SCRIPT_TEMPLATE = `/**
- * THE CORE CHAMBER - PHYSICAL FITNESS SCORE CARD
+ * THE CORE CHAMBER - PHYSICAL FITNESS SCORE CARD & REGISTRASI TRIAL
  * Google Apps Script Web App Endpoint + Whitelist User Security
  * 
  * STRUKTUR SPREADSHEET:
- * 1. Tab "Database" (atau Sheet Utama) -> Menyimpan hasil rekaman formulir scorecard
- * 2. Tab "whitelist_user" -> Menyimpan daftar pengguna/coach yang berhak akses
- *    Header Kolom Tab whitelist_user:
- *    | Nama | Email | PIN | Peran | Status |
+ * 1. Tab "DataCustomer" (atau Database) -> Menyimpan hasil rekaman formulir scorecard (64 kolom)
+ * 2. Tab "Registrasi_Trial" -> Menyimpan rekaman formulir trial customer Kids & Adults (23 kolom)
+ * 3. Tab "whitelist_user" -> Menyimpan daftar pengguna/coach yang berhak akses (5 kolom)
  * 
- * PANDUAN PENTING SAAT DEPLOY:
- * 1. Klik Deploy > New deployment (atau Manage deployments > Edit > Version: New version)
- * 2. "Execute as": "Me" (Email pemilik spreadsheet) -> WAJIB!
- * 3. "Who has access": "Anyone" (Siapa saja) -> WAJIB!
+ * PANDUAN PENTING SAAT MEMPERBARUI KODE:
+ * 1. Hapus semua kode lama di Apps Script, paste kode ini seluruhnya.
+ * 2. Klik ikon Disket / Simpan (Ctrl+S).
+ * 3. WAJIB BUAT VERSI BARU: Klik tombol biru "Deploy" > "Manage deployments" (Kelola deployment)
+ * 4. Klik ikon Pensil (Edit) di deployment aktif Anda.
+ * 5. Pada bagian "Version", pilih: "New version" (Versi baru).
+ * 6. Pastikan "Execute as" = Me, dan "Who has access" = Anyone (Siapa saja).
+ * 7. Klik "Deploy"! (Jika langkah ini dilewati, URL Anda masih menjalankan kode lama).
  */
 
+function getTodayString() {
+  var d = new Date();
+  var y = d.getFullYear();
+  var m = ("0" + (d.getMonth() + 1)).slice(-2);
+  var day = ("0" + d.getDate()).slice(-2);
+  return y + "-" + m + "-" + day;
+}
+
 function getDatabaseSheet(ss) {
+  var direct = ss.getSheetByName("DataCustomer");
+  if (direct) return direct;
+
+  var sheets = ss.getSheets();
+  for (var i = 0; i < sheets.length; i++) {
+    var name = sheets[i].getName().trim().toLowerCase();
+    if (name === "datacustomer" || name === "data_customer" || name === "database") {
+      return sheets[i];
+    }
+  }
   return ss.getSheetByName("Database") || ss.getActiveSheet();
 }
 
 function getWhitelistSheet(ss) {
+  var direct = ss.getSheetByName("whitelist_user");
+  if (direct) return direct;
+
   var sheets = ss.getSheets();
   for (var i = 0; i < sheets.length; i++) {
     var name = sheets[i].getName().trim().toLowerCase();
@@ -858,7 +953,56 @@ function getWhitelistSheet(ss) {
   return null;
 }
 
+function ensureTrialHeader(sheet) {
+  if (!sheet) return;
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow([
+      "ID", "TCC Trial ID", "Kategori", "Nama Lengkap", "Gender", "DoB", "Umur",
+      "Email", "WhatsApp", "Kontak Darurat", "Tanggal Sesi", "Hari", "Jam Sesi",
+      "Coach Bertugas", "Status Jadwal", "Status Trial", "Sekolah/Club", "Orang Tua/Pekerjaan",
+      "Kondisi Kesehatan", "Riwayat Cedera", "Catatan Khusus", "Created At", "Updated At"
+    ]);
+    sheet.getRange(1, 1, 1, 23).setFontWeight("bold").setBackground("#f1f5f9");
+    try {
+      sheet.setFrozenRows(1);
+    } catch (e) {}
+  }
+}
+
+function getTrialSheet(ss) {
+  // 1. Prioritaskan sheet bernama persis "Registrasi_Trial"
+  var direct = ss.getSheetByName("Registrasi_Trial");
+  if (direct) {
+    ensureTrialHeader(direct);
+    return direct;
+  }
+
+  // 2. Cari sheet dengan nama yang serupa (toleransi spasi/huruf besar-kecil)
+  var sheets = ss.getSheets();
+  for (var i = 0; i < sheets.length; i++) {
+    var rawName = sheets[i].getName();
+    var cleanName = rawName.trim().toLowerCase().replace(/\\s+/g, '_');
+    if (
+      cleanName === "registrasi_trial" ||
+      cleanName === "upcoming_trial" ||
+      cleanName === "trial_registration" ||
+      cleanName.indexOf("trial") !== -1
+    ) {
+      if (cleanName.indexOf("whitelist") === -1 && cleanName.indexOf("datacustomer") === -1 && cleanName.indexOf("database") === -1) {
+        ensureTrialHeader(sheets[i]);
+        return sheets[i];
+      }
+    }
+  }
+
+  // 3. Jika belum ada sama sekali, buat otomatis sheet Registrasi_Trial
+  var sheet = ss.insertSheet("Registrasi_Trial");
+  ensureTrialHeader(sheet);
+  return sheet;
+}
+
 function ensureHeader(sheet) {
+  if (!sheet) return;
   if (sheet.getLastRow() === 0) {
     sheet.appendRow([
       "Record_ID", "Created_At", "Updated_At", "Entry_Type", "Customer_Type",
@@ -876,6 +1020,10 @@ function ensureHeader(sheet) {
       "Score_Flexibility", "Cat_Flexibility", "Score_Coordination", "Cat_Coordination",
       "Avg_Skill", "Notes"
     ]);
+    sheet.getRange(1, 1, 1, 64).setFontWeight("bold").setBackground("#f1f5f9");
+    try {
+      sheet.setFrozenRows(1);
+    } catch (e) {}
   }
 }
 
@@ -886,7 +1034,6 @@ function readWhitelistUsers(ss) {
   if (lastRow < 2) return [];
   var lastCol = Math.max(sheet.getLastColumn(), 5);
 
-  // Gunakan getDisplayValues() agar angka nol di depan (misal PIN "0298") tetap utuh sebagai teks!
   var data = sheet.getRange(1, 1, lastRow, lastCol).getDisplayValues();
   var headers = data[0].map(function(h) { return String(h).trim().toLowerCase(); });
 
@@ -903,7 +1050,6 @@ function readWhitelistUsers(ss) {
   if (colStatus === -1) colStatus = 4;
 
   var users = [];
-  // Mendukung puluhan hingga ratusan email (50+ baris)
   for (var r = 1; r < data.length; r++) {
     var row = data[r];
     var nama = String(row[colNama] || "").trim();
@@ -961,7 +1107,6 @@ function readDatabaseRecords(ss) {
     var fullName = String(row[5] || "").trim();
     var memberId = String(row[9] || "").trim();
 
-    // Abaikan jika baris kosong sepenuhnya
     if (!recId && !fullName && !memberId) continue;
 
     function toNum(v) {
@@ -1060,6 +1205,54 @@ function readDatabaseRecords(ss) {
   return records;
 }
 
+function readTrialRecords(ss) {
+  var sheet = getTrialSheet(ss);
+  if (!sheet) return [];
+  ensureTrialHeader(sheet);
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return [];
+  var lastCol = Math.max(sheet.getLastColumn(), 23);
+  var values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+  var records = [];
+
+  for (var i = 0; i < values.length; i++) {
+    var r = values[i];
+    var id = String(r[0] || '').trim();
+    var memberId = String(r[1] || '').trim();
+    var name = String(r[3] || '').trim();
+    if (!id && !memberId && !name) continue;
+
+    records.push({
+      id: id || ('trial-' + (i + 1)),
+      MemberID: memberId,
+      Customer_type: String(r[2] || 'Trial Adults'),
+      Full_Name: name,
+      Gender: String(r[4] || ''),
+      DoB: r[5] ? String(r[5]) : '',
+      Umur: r[6] ? Number(r[6]) : null,
+      Email: String(r[7] || ''),
+      WhatsApp_Number: String(r[8] || ''),
+      Emergency_Contact: String(r[9] || ''),
+      Trial_Date: r[10] ? String(r[10]).split('T')[0] : '',
+      Trial_Day: String(r[11] || ''),
+      Trial_Time: String(r[12] || ''),
+      Coaches: r[13] ? String(r[13]).split(',').map(function(c) { return c.trim(); }) : [],
+      schedule_status: String(r[14] || 'Pending'),
+      trial_status: String(r[15] || 'Menunggu Trial'),
+      nama_sekolah: String(r[16] || ''),
+      formadults_pekerjaan: String(r[16] || ''),
+      nama_ayah: String(r[17] || ''),
+      formadults_perusahaan: String(r[17] || ''),
+      formadults_kondisi: String(r[18] || ''),
+      formadults_riwayat: String(r[19] || ''),
+      formadults_catatan: String(r[20] || ''),
+      createdAt: r[21] ? String(r[21]) : new Date().toISOString(),
+      updatedAt: r[22] ? String(r[22]) : new Date().toISOString()
+    });
+  }
+  return records;
+}
+
 // Untuk tes buka URL langsung di browser / verifikasi GET
 function doGet(e) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -1075,7 +1268,17 @@ function doGet(e) {
     })).setMimeType(ContentService.MimeType.JSON);
   }
 
-  // 2. GET WHITELIST USERS
+  // 2. GET TRIALS (SINKRONISASI TAB REGISTRASI TRIAL)
+  if (pAction === "GET_TRIALS") {
+    var trials = readTrialRecords(ss);
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "success",
+      total: trials.length,
+      trials: trials
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // 3. GET WHITELIST USERS
   if (pAction === "GET_WHITELIST") {
     var users = readWhitelistUsers(ss);
     return ContentService.createTextOutput(JSON.stringify({
@@ -1085,7 +1288,7 @@ function doGet(e) {
     })).setMimeType(ContentService.MimeType.JSON);
   }
 
-  // 2. VERIFY USER VIA GET
+  // 4. VERIFY USER VIA GET
   if (pAction === "VERIFY_USER") {
     var reqEmail = (e && e.parameter && e.parameter.email ? String(e.parameter.email) : "").trim().toLowerCase();
     var reqPin = (e && e.parameter && e.parameter.pin ? String(e.parameter.pin) : "").trim();
@@ -1135,9 +1338,50 @@ function doGet(e) {
     })).setMimeType(ContentService.MimeType.JSON);
   }
 
-  // Default: Health Check
+  // 5. TEST CONNECTION KE TAB REGISTRASI TRIAL VIA BROWSER GET
+  if (pAction === "TEST_TRIAL") {
+    var tSheet = getTrialSheet(ss);
+    ensureTrialHeader(tSheet);
+    var nowIso = new Date().toISOString();
+    tSheet.appendRow([
+      "trial-test-" + new Date().getTime(),
+      "TCC-TR-TEST",
+      "Trial Adults",
+      "TEST KONEKSI REGISTRASI TRIAL",
+      "Male",
+      "1995-05-15",
+      31,
+      "trial.test@example.com",
+      "+62 812-3456-7890",
+      "+62 813-9876-5432",
+      getTodayString(),
+      "Hari Ini",
+      "10:00",
+      "Mariskha Primasari",
+      "Confirmed",
+      "Menunggu Trial",
+      "The Core Chamber",
+      "Tester Sistem",
+      "Sehat & Siap Latihan",
+      "Tidak Ada Riwayat Cedera",
+      "Tes koneksi tab Registrasi_Trial via Browser (GET) berhasil 100%! Dilakukan pada " + nowIso + ". Anda dapat menghapus baris ini kapan saja.",
+      nowIso,
+      nowIso
+    ]);
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "success",
+      action: "TEST_TRIAL",
+      sheet: tSheet.getName(),
+      totalRows: tSheet.getLastRow(),
+      message: "✓ Sukses! 1 baris tes telah berhasil ditulis ke tab '" + tSheet.getName() + "'. Silakan periksa Google Sheet Anda!"
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // 6. Default: Health Check (Menampilkan status DataCustomer DAN Registrasi_Trial sekaligus!)
   var dbSheet = getDatabaseSheet(ss);
   ensureHeader(dbSheet);
+  var trialSheet = getTrialSheet(ss);
+  ensureTrialHeader(trialSheet);
   var wlSheet = getWhitelistSheet(ss);
   var wlCount = wlSheet ? Math.max(0, wlSheet.getLastRow() - 1) : 0;
 
@@ -1145,9 +1389,11 @@ function doGet(e) {
     status: "ready",
     databaseSheet: dbSheet.getName(),
     totalScorecards: dbSheet.getLastRow() > 1 ? dbSheet.getLastRow() - 1 : 0,
+    trialSheet: trialSheet.getName(),
+    totalTrialRecords: trialSheet.getLastRow() > 1 ? trialSheet.getLastRow() - 1 : 0,
     hasWhitelistSheet: Boolean(wlSheet),
     totalWhitelistUsers: wlCount,
-    message: "THE CORE CHAMBER - Webhook Apps Script & Whitelist User Aktif!"
+    message: "THE CORE CHAMBER - Webhook Apps Script, Scorecard & Registrasi Trial Aktif 100%!"
   })).setMimeType(ContentService.MimeType.JSON);
 }
 
@@ -1242,6 +1488,138 @@ function doPost(e) {
       })).setMimeType(ContentService.MimeType.JSON);
     }
 
+    // 0.D SAVE TRIAL REGISTRATION (TERPISAH DI TAB Registrasi_Trial)
+    if (action === "SAVE_TRIAL_REGISTRATION") {
+      var tSheet = getTrialSheet(ss);
+      ensureTrialHeader(tSheet);
+      var tData = payload.data || {};
+      
+      var tLastRow = tSheet.getLastRow();
+      var tTargetRow = -1;
+      var targetTrialId = String(tData.id || '').trim();
+      var targetMemberId = String(tData.MemberID || '').trim();
+
+      if (tLastRow > 1) {
+        var tVals = tSheet.getRange(2, 1, tLastRow - 1, 2).getValues();
+        for (var tr = 0; tr < tVals.length; tr++) {
+          var rowId = String(tVals[tr][0] || '').trim();
+          var rowMemId = String(tVals[tr][1] || '').trim();
+          if ((targetTrialId && rowId === targetTrialId) || (targetMemberId && rowMemId === targetMemberId)) {
+            tTargetRow = tr + 2;
+            break;
+          }
+        }
+      }
+
+      var rowToInsert = [
+        tData.id || "",
+        tData.MemberID || "",
+        tData.Customer_type || "",
+        tData.Full_Name || "",
+        tData.Gender || "",
+        tData.DoB || "",
+        tData.Umur !== undefined ? tData.Umur : "",
+        tData.Email || "",
+        tData.WhatsApp_Number || "",
+        tData.Emergency_Contact || "",
+        tData.Trial_Date || "",
+        tData.Trial_Day || "",
+        tData.Trial_Time || "",
+        Array.isArray(tData.Coaches) ? tData.Coaches.join(", ") : (tData.Coaches || ""),
+        tData.schedule_status || "",
+        tData.trial_status || "",
+        tData.nama_sekolah || tData.formadults_pekerjaan || "",
+        tData.nama_ayah || tData.formadults_perusahaan || "",
+        tData.formadults_kondisi || "",
+        tData.formadults_riwayat || "",
+        tData.formadults_catatan || "",
+        tData.createdAt || new Date().toISOString(),
+        tData.updatedAt || new Date().toISOString()
+      ];
+
+      if (tTargetRow > 1) {
+        tSheet.getRange(tTargetRow, 1, 1, rowToInsert.length).setValues([rowToInsert]);
+      } else {
+        tSheet.appendRow(rowToInsert);
+      }
+
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "success",
+        sheet: tSheet.getName(),
+        row: tTargetRow > 1 ? tTargetRow : tSheet.getLastRow(),
+        message: "Data registrasi trial berhasil disimpan ke tab " + tSheet.getName()
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // 0.E SYNC ALL TRIALS (BATCH DARI TAB UPCOMING TRIAL KE TAB Registrasi_Trial)
+    if (action === "SYNC_ALL_TRIALS" && Array.isArray(payload.trials)) {
+      var tSheet = getTrialSheet(ss);
+      ensureTrialHeader(tSheet);
+      var tLastRow = tSheet.getLastRow();
+      var existingTrialIds = {};
+
+      if (tLastRow > 1) {
+        var tIdVals = tSheet.getRange(2, 1, tLastRow - 1, 2).getValues();
+        for (var ti = 0; ti < tIdVals.length; ti++) {
+          var exId = String(tIdVals[ti][0] || '').trim();
+          var exMemId = String(tIdVals[ti][1] || '').trim();
+          if (exId) existingTrialIds[exId] = ti + 2;
+          if (exMemId) existingTrialIds[exMemId] = ti + 2;
+        }
+      }
+
+      var trialInserted = 0;
+      var trialUpdated = 0;
+
+      for (var tj = 0; tj < payload.trials.length; tj++) {
+        var tItem = payload.trials[tj];
+        var tRowVals = [
+          tItem.id || "",
+          tItem.MemberID || "",
+          tItem.Customer_type || "",
+          tItem.Full_Name || "",
+          tItem.Gender || "",
+          tItem.DoB || "",
+          tItem.Umur !== undefined ? tItem.Umur : "",
+          tItem.Email || "",
+          tItem.WhatsApp_Number || "",
+          tItem.Emergency_Contact || "",
+          tItem.Trial_Date || "",
+          tItem.Trial_Day || "",
+          tItem.Trial_Time || "",
+          Array.isArray(tItem.Coaches) ? tItem.Coaches.join(", ") : (tItem.Coaches || ""),
+          tItem.schedule_status || "",
+          tItem.trial_status || "",
+          tItem.nama_sekolah || tItem.formadults_pekerjaan || "",
+          tItem.nama_ayah || tItem.formadults_perusahaan || "",
+          tItem.formadults_kondisi || "",
+          tItem.formadults_riwayat || "",
+          tItem.formadults_catatan || "",
+          tItem.createdAt || new Date().toISOString(),
+          tItem.updatedAt || new Date().toISOString()
+        ];
+
+        var exRow = existingTrialIds[String(tItem.id || '').trim()] || (tItem.MemberID ? existingTrialIds[String(tItem.MemberID).trim()] : null);
+
+        if (exRow && exRow > 1) {
+          tSheet.getRange(exRow, 1, 1, tRowVals.length).setValues([tRowVals]);
+          trialUpdated++;
+        } else {
+          tSheet.appendRow(tRowVals);
+          trialInserted++;
+        }
+      }
+
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "success",
+        sheet: tSheet.getName(),
+        total: payload.trials.length,
+        inserted: trialInserted,
+        updated: trialUpdated,
+        message: "Berhasil menyinkronkan data ke tab " + tSheet.getName()
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
     // Build row index lookup untuk mencegah row duplicate pada tabel Database
     var lastRow = dbSheet.getLastRow();
     var idToRowMap = {};
@@ -1271,11 +1649,9 @@ function doPost(e) {
         var existingRow = idToRowMap[recId] || (memId ? idToRowMap[memId] : null);
 
         if (existingRow && existingRow > 1) {
-          // UPDATE baris yang sudah ada (IN-PLACE, TIDAK APPEND!)
           dbSheet.getRange(existingRow, 1, 1, rVals.length).setValues([rVals]);
           updatedCount++;
         } else {
-          // APPEND hanya jika data benar-benar baru
           dbSheet.appendRow(rVals);
           var newRowNumber = dbSheet.getLastRow();
           if (recId) idToRowMap[recId] = newRowNumber;
@@ -1293,14 +1669,54 @@ function doPost(e) {
       })).setMimeType(ContentService.MimeType.JSON);
     }
 
-    // B. TEST CONNECTION (Menulis 1 baris sample langsung untuk visual check)
+    // B.1 TEST CONNECTION KHUSUS TAB Registrasi_Trial
+    if (action === "TEST_TRIAL") {
+      var tSheet = getTrialSheet(ss);
+      ensureTrialHeader(tSheet);
+      var td = (payload && payload.data) || {};
+      var nowIso = new Date().toISOString();
+      tSheet.appendRow([
+        td.id || ("trial-test-" + new Date().getTime()),
+        td.MemberID || "TCC-TR-TEST",
+        td.Customer_type || "Trial Adults",
+        td.Full_Name || "TEST KONEKSI REGISTRASI TRIAL",
+        td.Gender || "Male",
+        td.DoB || "1995-05-15",
+        td.Umur || 31,
+        td.Email || "trial.test@example.com",
+        td.WhatsApp_Number || "+62 812-3456-7890",
+        td.Emergency_Contact || "+62 813-9876-5432",
+        td.Trial_Date || getTodayString(),
+        td.Trial_Day || "Hari Ini",
+        td.Trial_Time || "10:00",
+        Array.isArray(td.Coaches) ? td.Coaches.join(", ") : (td.Coaches || "Mariskha Primasari"),
+        td.schedule_status || "Confirmed",
+        td.trial_status || "Menunggu Trial",
+        td.nama_sekolah || td.formadults_pekerjaan || "Tester Sistem",
+        td.nama_ayah || td.formadults_perusahaan || "The Core Chamber",
+        td.formadults_kondisi || "Sehat",
+        td.formadults_riwayat || "Tidak Ada",
+        td.formadults_catatan || "Koneksi tab Registrasi_Trial Berhasil 100%! Baris ini dapat dihapus kapan saja.",
+        nowIso,
+        nowIso
+      ]);
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "success",
+        action: "TEST_TRIAL",
+        sheet: tSheet.getName(),
+        row: tSheet.getLastRow(),
+        message: "Berhasil menulis 1 baris tes ke tab " + tSheet.getName()
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // B.2 TEST CONNECTION KHUSUS TAB DataCustomer (Score Card)
     if (action === "TEST") {
       var testData = payload.data || {
         record_id: "rec-test-" + new Date().getTime(),
         full_name: "TEST KONEKSI BERHASIL",
         member_id: "TCC-TEST",
         customer_type: "trial",
-        test_date: Utilities.formatDate(new Date(), "Asia/Jakarta", "yyyy-MM-dd"),
+        test_date: getTodayString(),
         notes: "Koneksi Web App dan Google Sheet telah berhasil 100%!"
       };
       var testRow = mapDataToRow(testData);
@@ -1312,7 +1728,7 @@ function doPost(e) {
       })).setMimeType(ContentService.MimeType.JSON);
     }
 
-    // C. SINGLE RECORD CREATE / UPDATE
+    // C. SINGLE RECORD CREATE / UPDATE PADA TAB DataCustomer
     var memberId = String(payload.memberId || '').trim();
     var recordId = String(payload.recordId || '').trim();
     var rowValues = mapDataToRow(payload.data);
@@ -1321,7 +1737,6 @@ function doPost(e) {
 
     if (action === "UPDATE" || targetRow > 1) {
       if (targetRow > 1) {
-        // UPDATE baris lama
         dbSheet.getRange(targetRow, 1, 1, rowValues.length).setValues([rowValues]);
         return ContentService.createTextOutput(JSON.stringify({
           status: "success",
@@ -1331,12 +1746,18 @@ function doPost(e) {
       }
     }
 
-    // CREATE baris baru
-    dbSheet.appendRow(rowValues);
+    if (action === "CREATE" || !action) {
+      dbSheet.appendRow(rowValues);
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "success",
+        action: "CREATE",
+        row: dbSheet.getLastRow()
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
     return ContentService.createTextOutput(JSON.stringify({
-      status: "success",
-      action: "CREATE",
-      row: dbSheet.getLastRow()
+      status: "error",
+      message: "Action tidak dikenali: " + action
     })).setMimeType(ContentService.MimeType.JSON);
 
   } catch (err) {
@@ -1347,13 +1768,46 @@ function doPost(e) {
   }
 }
 
-// Fungsi opsional untuk uji coba langsung di editor Apps Script (Klik "Run" pada fungsi ini)
-function TEST_RUN_DARI_APPS_SCRIPT() {
+// Uji coba tab DataCustomer langsung di editor Apps Script (Pilih fungsi ini lalu klik "Run")
+function TEST_KIRIM_KE_DATACUSTOMER() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = getDatabaseSheet(ss);
   ensureHeader(sheet);
   sheet.appendRow(["rec-manual-test", new Date(), new Date(), "member", "member", "Uji Coba Manual Apps Script", "male", "", "", "TCC-MANUAL"]);
-  Logger.log("Berhasil menulis baris tes manual! Periksa spreadsheet Anda sekarang.");
+  Logger.log("✓ BERHASIL! 1 baris tes telah ditulis ke tab " + sheet.getName() + " pada baris ke-" + sheet.getLastRow());
+}
+
+// Uji coba tab Registrasi_Trial langsung di editor Apps Script (Pilih fungsi ini lalu klik "Run")
+function TEST_KIRIM_KE_REGISTRASI_TRIAL() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = getTrialSheet(ss);
+  ensureTrialHeader(sheet);
+  sheet.appendRow([
+    "trial-test-editor-" + new Date().getTime(),
+    "TCC-TR-EDITOR",
+    "Trial Adults",
+    "TEST DARI EDITOR APPS SCRIPT",
+    "Male",
+    "1990-01-01",
+    36,
+    "editor.test@example.com",
+    "+62 812-0000-0000",
+    "-",
+    getTodayString(),
+    "Hari Ini",
+    "09:00",
+    "Head Coach",
+    "Confirmed",
+    "Menunggu Trial",
+    "-",
+    "-",
+    "Sehat & Prima",
+    "Tidak Ada",
+    "Tes dijalankan langsung dari tombol Run di editor Apps Script!",
+    new Date().toISOString(),
+    new Date().toISOString()
+  ]);
+  Logger.log("✓ BERHASIL! 1 baris tes telah ditulis ke tab '" + sheet.getName() + "' pada baris ke-" + sheet.getLastRow() + ". Silakan periksa spreadsheet Anda!");
 }
 `;
 
