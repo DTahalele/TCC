@@ -92,6 +92,10 @@ export interface TrialRegistrationRecord {
   signature_admin?: string;
   signature_coordinator?: string;
 
+  // Conversion to Member TCC
+  converted_member_id?: string; // New official TCC-xxxx ID when converted
+  converted_at?: string;
+
   createdAt: string;
   updatedAt: string;
 }
@@ -219,3 +223,17 @@ export function getIndonesianDayName(dateString: string): string {
     return '';
   }
 }
+
+/**
+ * Logika Penjadwalan:
+ * - 'Confirmed': HANYA JIKA Tanggal + Hari + Jam + Coach terpilih (minimal 1) semuanya lengkap!
+ * - 'Pending': Jika salah satu atau lebih belum lengkap.
+ */
+export function computeScheduleStatus(record: Partial<TrialRegistrationRecord>): ScheduleStatus {
+  const hasDate = Boolean(record.Trial_Date && record.Trial_Date.trim());
+  const hasDay = Boolean(record.Trial_Day && record.Trial_Day.trim());
+  const hasTime = Boolean(record.Trial_Time && record.Trial_Time.trim());
+  const hasCoach = Array.isArray(record.Coaches) && record.Coaches.length > 0;
+  return hasDate && hasDay && hasTime && hasCoach ? 'Confirmed' : 'Pending';
+}
+

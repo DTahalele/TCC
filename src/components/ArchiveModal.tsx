@@ -19,7 +19,7 @@ import {
   Filter,
 } from 'lucide-react';
 import { ScoreCardRecord } from '../types/scoreCard';
-import { exportRecordsToCSV } from '../utils/storage';
+import { exportRecordsToCSV, isTestRecord } from '../utils/storage';
 import { getBMIBadgeStyle } from '../utils/calculations';
 
 interface ArchiveModalProps {
@@ -80,11 +80,16 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
     return 'Tanpa Nama';
   };
 
-  const memberCount = useMemo(() => records.filter((r) => r.Customer_type === 'member').length, [records]);
-  const trialCount = useMemo(() => records.filter((r) => r.Customer_type === 'trial').length, [records]);
+  // Strip out any test-connection records
+  const cleanRecords = useMemo(() => {
+    return records.filter((r) => !isTestRecord(r));
+  }, [records]);
+
+  const memberCount = useMemo(() => cleanRecords.filter((r) => r.Customer_type === 'member').length, [cleanRecords]);
+  const trialCount = useMemo(() => cleanRecords.filter((r) => r.Customer_type === 'trial').length, [cleanRecords]);
 
   const filteredRecords = useMemo(() => {
-    return records.filter((r) => {
+    return cleanRecords.filter((r) => {
       const q = search.toLowerCase();
       const customerName = getRecordName(r);
       const matchSearch =
@@ -96,7 +101,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
       const matchType = filterType === 'all' ? true : r.Customer_type === filterType;
       return matchSearch && matchType;
     });
-  }, [records, search, filterType]);
+  }, [cleanRecords, search, filterType]);
 
   if (!isOpen && !isFullPage) return null;
 

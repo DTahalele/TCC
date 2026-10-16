@@ -1,6 +1,7 @@
 import React from 'react';
 import { ScoreCardRecord, SCORE_CATEGORIES, ScoreLevel } from '../types/scoreCard';
 import { TCCLogo } from './TCCLogo';
+import { PrintFooter } from './PrintFooter';
 
 interface PrintViewProps {
   record: ScoreCardRecord;
@@ -170,10 +171,8 @@ export const PrintView: React.FC<PrintViewProps> = ({ record }) => {
         </div>
       </div>
 
-      {/* Print Footer Disclaimer */}
-      <div className="mt-6 pt-2 border-t border-slate-300 text-[8px] text-slate-500 text-center leading-normal">
-        THE CORE CHAMBER - Physical Fitness Score Card Confidential Assessment Report. Dicetak pada {new Date().toLocaleString('id-ID')}.
-      </div>
+      {/* Centered Brand & Contact Footer */}
+      <PrintFooter />
     </div>
   );
 };

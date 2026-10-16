@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Search, UserCheck, Plus, X, Calendar, ArrowRight } from 'lucide-react';
 import { ScoreCardRecord } from '../types/scoreCard';
+import { isTestRecord } from '../utils/storage';
 
 interface MemberPickerModalProps {
   records: ScoreCardRecord[];
@@ -19,10 +20,10 @@ export const MemberPickerModal: React.FC<MemberPickerModalProps> = ({
 }) => {
   const [search, setSearch] = useState('');
 
-  // Extract unique members (by MemberID or Name)
+  // Extract unique members (by MemberID or Name) and exclude test rows
   const uniqueMembers = useMemo(() => {
     const memberMap = new Map<string, ScoreCardRecord>();
-    records.forEach((r) => {
+    records.filter((r) => !isTestRecord(r)).forEach((r) => {
       const key = r.MemberID || r.Full_Name;
       if (key && !memberMap.has(key)) {
         memberMap.set(key, r);

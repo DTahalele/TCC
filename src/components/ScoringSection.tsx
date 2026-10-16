@@ -15,7 +15,7 @@ interface ScoringSectionProps {
   items: ScoreItemConfig[];
   averageScore: number | null;
   averageCategory: string;
-  onScoreSelect: (scoreKey: string, catKey: string, score: ScoreLevel) => void;
+  onScoreSelect: (scoreKey: string, catKey: string, score: ScoreLevel | null) => void;
 }
 
 export const ScoringSection: React.FC<ScoringSectionProps> = ({
@@ -82,7 +82,7 @@ export const ScoringSection: React.FC<ScoringSectionProps> = ({
 
 interface ScoreItemCardProps {
   item: ScoreItemConfig;
-  onSelect: (score: ScoreLevel) => void;
+  onSelect: (score: ScoreLevel | null) => void;
 }
 
 const ScoreItemCard: React.FC<ScoreItemCardProps> = ({ item, onSelect }) => {
@@ -103,9 +103,17 @@ const ScoreItemCard: React.FC<ScoreItemCardProps> = ({ item, onSelect }) => {
             {item.label}
           </span>
           {isFilled && (
-            <span className="text-emerald-600 dark:text-emerald-400 text-xs font-bold whitespace-nowrap">
-              ✓
-            </span>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelect(null);
+              }}
+              title="Klik untuk mengosongkan / reset nilai ini"
+              className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-rose-50 dark:bg-rose-950/50 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 text-[10px] font-bold transition-colors cursor-pointer border border-rose-200 dark:border-rose-800"
+            >
+              <span>✕ Reset</span>
+            </button>
           )}
         </div>
 
@@ -120,7 +128,7 @@ const ScoreItemCard: React.FC<ScoreItemCardProps> = ({ item, onSelect }) => {
         )}
       </div>
 
-      {/* 1 - 4 Scale Buttons */}
+      {/* 1 - 4 Scale Buttons (Click to choose, Click again to toggle off / clear) */}
       <div className="grid grid-cols-4 gap-1.5">
         {[1, 2, 3, 4].map((num) => {
           const score = num as ScoreLevel;
@@ -130,8 +138,9 @@ const ScoreItemCard: React.FC<ScoreItemCardProps> = ({ item, onSelect }) => {
             <button
               key={score}
               type="button"
-              onClick={() => onSelect(score)}
-              className={`py-2 rounded-lg font-mono text-xs font-bold transition-all ${getButtonScoreStyle(
+              onClick={() => onSelect(isSelected ? null : score)}
+              title={isSelected ? 'Klik lagi untuk menghilangkan / mengosongkan nilai' : `Pilih nilai ${score}`}
+              className={`py-2 rounded-lg font-mono text-xs font-bold transition-all cursor-pointer ${getButtonScoreStyle(
                 score,
                 isSelected
               )}`}

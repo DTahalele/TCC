@@ -1,5 +1,16 @@
-import React, { useState } from 'react';
-import { Database, FileText, Moon, Sun, Settings, User, LogOut, CalendarCheck } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import {
+  Database,
+  FileText,
+  Moon,
+  Sun,
+  Settings,
+  LogOut,
+  CalendarCheck,
+  MoreVertical,
+  ShieldCheck,
+  UserCheck,
+} from 'lucide-react';
 import { TCCLogo } from './TCCLogo';
 import { WhitelistUser } from '../types/auth';
 
@@ -29,17 +40,39 @@ export const Header: React.FC<HeaderProps> = ({
   darkMode,
   setDarkMode,
   onOpenGoogleSheetModal,
-  onPrint,
   currentUser,
   onLogout,
 }) => {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+    if (isMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [isMenuOpen]);
 
   return (
     <header className="sticky top-0 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 transition-colors">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3.5 flex flex-wrap items-center justify-between gap-3">
         {/* Brand / Logo */}
-        <div className="flex items-center gap-3 cursor-pointer" onClick={() => setCurrentTab('form')}>
+        <div
+          className="flex items-center gap-3 cursor-pointer"
+          onClick={() => setCurrentTab('form')}
+          title="Ke Halaman Utama Formulir"
+        >
           {/* Official TCC Logo */}
           <div className="w-11 h-11 rounded-xl bg-white dark:bg-slate-800 p-1 border border-slate-200/90 dark:border-slate-700 shadow-xs flex items-center justify-center overflow-hidden shrink-0">
             <TCCLogo className="w-full h-full text-slate-950 dark:text-white" variant="full" />
@@ -47,39 +80,41 @@ export const Header: React.FC<HeaderProps> = ({
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-lg sm:text-xl font-extrabold tracking-tight text-slate-950 dark:text-white uppercase font-sans">
-                <span>THE </span><span className="text-rose-600 dark:text-rose-500">CORE</span><span> CHAMBER</span>
+                <span>THE </span>
+                <span className="text-rose-600 dark:text-rose-500">CORE</span>
+                <span> CHAMBER</span>
               </h1>
               <span className="hidden sm:inline-block text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
                 PRO
               </span>
             </div>
             <p className="text-[11px] sm:text-xs font-semibold tracking-wider text-slate-500 dark:text-slate-400 uppercase">
-              FORM - PHYSICAL FITNESS SCOR CARD & DATA MEMBER
+              FORM - PHYSICAL FITNESS SCORE CARD & DATA MEMBER
             </p>
           </div>
         </div>
 
-        {/* Right Header Navigation & Actions */}
-        <div className="flex items-center flex-wrap gap-2 sm:gap-2.5 text-sm">
-          {/* Formulir Tab */}
+        {/* Right Header: Navigation Tabs + Modern 3-Dots Menu */}
+        <div className="flex items-center gap-1.5 sm:gap-2.5 text-sm">
+          {/* 1. Score Card (Member Only) Tab */}
           <button
             type="button"
             onClick={() => setCurrentTab('form')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               currentTab === 'form'
                 ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm'
                 : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
           >
             <FileText className="w-3.5 h-3.5" />
-            <span>Formulir</span>
+            <span>Score Card (Member Only)</span>
           </button>
 
-          {/* Arsip Tab */}
+          {/* 2. Arsip Tab */}
           <button
             type="button"
             onClick={() => setCurrentTab('archive')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               currentTab === 'archive'
                 ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm'
                 : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -92,11 +127,11 @@ export const Header: React.FC<HeaderProps> = ({
             </span>
           </button>
 
-          {/* UPCOMING TRIAL Tab (Disisipkan persis sesudah tab Arsip dengan Indikator Notifikasi Modern) */}
+          {/* 3. Upcoming Trial Tab */}
           <button
             type="button"
             onClick={() => setCurrentTab('upcoming_trial')}
-            className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+            className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               currentTab === 'upcoming_trial'
                 ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm'
                 : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -105,89 +140,156 @@ export const Header: React.FC<HeaderProps> = ({
             <CalendarCheck className="w-3.5 h-3.5 text-rose-500" />
             <span>Upcoming Trial</span>
             {upcomingTrialCount > 0 && (
-              <span className={`ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-extrabold flex items-center gap-1 ${
-                upcomingTodayCount > 0
-                  ? 'bg-rose-600 text-white animate-pulse'
-                  : 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border border-rose-300 dark:border-rose-800'
-              }`}>
-                {upcomingTodayCount > 0 && <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />}
+              <span
+                className={`ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-extrabold flex items-center gap-1 ${
+                  upcomingTodayCount > 0
+                    ? 'bg-rose-600 text-white animate-pulse'
+                    : 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border border-rose-300 dark:border-rose-800'
+                }`}
+              >
+                {upcomingTodayCount > 0 && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+                )}
                 <span>{upcomingTrialCount}</span>
               </span>
             )}
           </button>
 
-          {/* Dark / Light Mode Toggle */}
-          <button
-            type="button"
-            onClick={() => setDarkMode(!darkMode)}
-            aria-pressed={darkMode}
-            aria-label={darkMode ? 'Beralih ke Mode Terang' : 'Beralih ke Mode Gelap'}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer shadow-2xs ${
-              darkMode
-                ? 'bg-slate-800 border-slate-700 text-amber-300 hover:bg-slate-700 hover:border-slate-600'
-                : 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200/70 hover:border-slate-300'
-            }`}
-            title={darkMode ? 'Beralih ke Mode Terang (Light Mode)' : 'Beralih ke Mode Gelap (Dark Mode)'}
-          >
-            {darkMode ? (
-              <>
-                <Sun className="w-3.5 h-3.5 text-amber-400 animate-in spin-in-180 duration-300" />
-                <span className="hidden sm:inline text-slate-200">Terang</span>
-              </>
-            ) : (
-              <>
-                <Moon className="w-3.5 h-3.5 text-indigo-600 animate-in spin-in-180 duration-300" />
-                <span className="hidden sm:inline text-slate-700">Gelap</span>
-              </>
-            )}
-          </button>
+          {/* Divider between Tabs and Menu */}
+          <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-0.5 sm:mx-1" />
 
-          {/* Current User Badge & Logout */}
-          {currentUser && (
-            <div className="flex items-center gap-1.5 pl-1.5 border-l border-slate-200 dark:border-slate-700">
-              <div
-                className="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 text-xs"
-                title={`Login sebagai: ${currentUser.nama} (${currentUser.email})`}
-              >
+          {/* Modern 3-Dots Menu Container */}
+          <div className="relative" ref={menuRef}>
+            <button
+              type="button"
+              onClick={() => setIsMenuOpen((prev) => !prev)}
+              aria-expanded={isMenuOpen}
+              aria-label="Menu Pengaturan & Akun"
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border transition-all cursor-pointer shadow-2xs ${
+                isMenuOpen
+                  ? 'bg-slate-900 text-white border-slate-900 dark:bg-white dark:text-slate-900 dark:border-white ring-2 ring-emerald-500/20'
+                  : 'bg-slate-100 hover:bg-slate-200/80 dark:bg-slate-800 dark:hover:bg-slate-700 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200'
+              }`}
+              title="Buka Menu, Profil Akun & Pengaturan"
+            >
+              {currentUser && (
                 <div className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-[10px] shrink-0">
                   {currentUser.nama ? currentUser.nama.charAt(0).toUpperCase() : 'U'}
                 </div>
-                <div className="hidden md:flex flex-col text-left">
-                  <span className="font-bold text-[11px] leading-tight truncate max-w-[120px]">
-                    {currentUser.nama}
-                  </span>
-                  {currentUser.peran && (
-                    <span className="text-[9px] text-emerald-600 dark:text-emerald-400 leading-tight">
-                      {currentUser.peran}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Logout / Sign Out Button */}
-              {onLogout && (
-                <button
-                  type="button"
-                  onClick={() => setShowLogoutConfirm(true)}
-                  className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-transparent hover:border-rose-200 dark:hover:border-rose-800/50 transition-colors cursor-pointer"
-                  title="Keluar / Logout Akun"
-                >
-                  <LogOut className="w-4 h-4" />
-                </button>
               )}
-            </div>
-          )}
-
-          {/* Tombol Pengaturan Database (Ikon Gear) di Paling Kanan dengan Jarak Ideal */}
-          <div className="pl-1.5 sm:pl-2 ml-0.5 sm:ml-1 border-l border-slate-200 dark:border-slate-700 flex items-center">
-            <button
-              type="button"
-              onClick={onOpenGoogleSheetModal}
-              className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200/70 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer shadow-2xs"
-              title="Pengaturan Database & Status Google Sheet"
-            >
-              <Settings className="w-4 h-4" />
+              <MoreVertical className="w-4 h-4" />
             </button>
+
+            {/* Dropdown Menu Modal */}
+            {isMenuOpen && (
+              <div className="absolute right-0 top-full mt-2 w-72 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl p-3 z-50 animate-in fade-in zoom-in-95 duration-150">
+                {/* 1. Header Profil Pengguna */}
+                {currentUser ? (
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 mb-2">
+                    <div className="w-10 h-10 rounded-full bg-emerald-600 text-white flex items-center justify-center font-extrabold text-sm shadow-xs shrink-0">
+                      {currentUser.nama ? currentUser.nama.charAt(0).toUpperCase() : 'U'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-extrabold text-xs text-slate-900 dark:text-white truncate">
+                          {currentUser.nama}
+                        </span>
+                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      </div>
+                      <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-wider">
+                        {currentUser.peran || 'Coach / Instruktur'}
+                      </div>
+                      {currentUser.email && (
+                        <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                          {currentUser.email}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 mb-2 text-center text-xs text-slate-500">
+                    Sesi Pengguna Internal TCC
+                  </div>
+                )}
+
+                {/* 2. Menu Action Items */}
+                <div className="space-y-1">
+                  {/* Pengaturan Database (Ikon Gear) */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      onOpenGoogleSheetModal();
+                    }}
+                    className="w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className="p-1.5 rounded-lg bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400 group-hover:scale-105 transition-transform">
+                        <Settings className="w-4 h-4" />
+                      </div>
+                      <div className="text-left">
+                        <span className="block font-bold text-slate-900 dark:text-white">
+                          Pengaturan Database
+                        </span>
+                        <span className="block text-[10px] text-slate-500 dark:text-slate-400">
+                          Google Sheet Backend URL
+                        </span>
+                      </div>
+                    </div>
+                  </button>
+
+                  {/* Mode Tampilan (Dark / Light Mode) */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDarkMode(!darkMode);
+                    }}
+                    className="w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className="p-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 group-hover:scale-105 transition-transform">
+                        {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                      </div>
+                      <div className="text-left">
+                        <span className="block font-bold text-slate-900 dark:text-white">
+                          Mode Tampilan
+                        </span>
+                        <span className="block text-[10px] text-slate-500 dark:text-slate-400">
+                          {darkMode ? 'Aktif: Tema Gelap' : 'Aktif: Tema Terang'}
+                        </span>
+                      </div>
+                    </div>
+                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200">
+                      {darkMode ? 'Gelap' : 'Terang'}
+                    </span>
+                  </button>
+                </div>
+
+                {/* 3. Divider & Logout Button */}
+                {onLogout && (
+                  <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        setShowLogoutConfirm(true);
+                      }}
+                      className="w-full flex items-center gap-2.5 p-2.5 rounded-xl text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-colors cursor-pointer group"
+                    >
+                      <div className="p-1.5 rounded-lg bg-rose-100 dark:bg-rose-900/50 text-rose-600 dark:text-rose-400 group-hover:scale-105 transition-transform">
+                        <LogOut className="w-4 h-4" />
+                      </div>
+                      <div className="text-left">
+                        <span>Keluar / Logout Akun</span>
+                        <span className="block text-[10px] text-rose-500/80 font-normal">
+                          Akhiri sesi login coach ini
+                        </span>
+                      </div>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -200,7 +302,8 @@ export const Header: React.FC<HeaderProps> = ({
               Konfirmasi Keluar (Logout)
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
-              Apakah Anda yakin ingin keluar dari sesi formulir ini? Anda perlu memasukkan email & PIN kembali untuk mengakses formulir.
+              Apakah Anda yakin ingin keluar dari sesi formulir ini? Anda perlu memasukkan email & PIN
+              kembali untuk mengakses formulir.
             </p>
             <div className="flex items-center justify-end gap-2.5 mt-5">
               <button

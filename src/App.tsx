@@ -22,6 +22,7 @@ import {
 } from './utils/calculations';
 import {
   getStoredRecords,
+  setStoredRecords,
   saveOrUpdateRecord,
   deleteStoredRecord,
   getGoogleSheetUrl,
@@ -108,6 +109,7 @@ export default function App() {
   const [selectedTrialForPrint, setSelectedTrialForPrint] = useState<TrialRegistrationRecord | null>(null);
   const [editingTrialRecord, setEditingTrialRecord] = useState<TrialRegistrationRecord | null>(null);
   const [trialRegistrationType, setTrialRegistrationType] = useState<TrialCustomerType>('Trial Adults');
+  const [trialModalInitialSection, setTrialModalInitialSection] = useState<'profil' | 'riwayat' | 'medis' | 'asesmen'>('profil');
 
   // Compute live upcoming trial metrics (window 7 hari & hari ini)
   const upcomingMetrics = useMemo(() => getUpcomingTrialsWindow(trials), [trials]);
@@ -135,15 +137,23 @@ export default function App() {
   // Dedicated state for isolated single-customer scorecard printing
   const [recordToPrint, setRecordToPrint] = useState<ScoreCardRecord | null>(null);
 
-  // Initialize records on mount & auto-sync from Google Sheet database if available
+  // Initialize records & trials on mount & auto-sync from Google Sheet database if available
   useEffect(() => {
     const loaded = getStoredRecords();
     setRecords(loaded);
+
+    const loadedTrials = getStoredTrials();
+    setTrials(loadedTrials);
 
     if (hasGoogleSheetUrlConfigured()) {
       fetchRecordsFromGoogleSheet().then((res) => {
         if (res.success && res.records.length > 0) {
           setRecords(res.records);
+        }
+      });
+      fetchTrialsFromGoogleSheet().then((res) => {
+        if (res.success && res.trials.length > 0) {
+          setTrials(res.trials);
         }
       });
     }
@@ -281,9 +291,9 @@ export default function App() {
     });
   };
 
-  // Handle scoring button selections with auto average update
-  const handleScoreSelect = (scoreKey: string, catKey: string, score: ScoreLevel) => {
-    const category = getScoreCategory(score);
+  // Handle scoring button selections with auto average update (supports toggling off/resetting to null)
+  const handleScoreSelect = (scoreKey: string, catKey: string, score: ScoreLevel | null) => {
+    const category = score !== null ? getScoreCategory(score) : '';
 
     setFormData((prev) => {
       const updated = {
@@ -405,6 +415,7 @@ export default function App() {
   const handleAddNewTrial = (type: TrialCustomerType = 'Trial Adults') => {
     setTrialRegistrationType(type);
     setEditingTrialRecord(null);
+    setTrialModalInitialSection('profil');
     setIsTrialRegistrationModalOpen(true);
   };
 
@@ -447,6 +458,7 @@ export default function App() {
   const handleEditTrial = (trial: TrialRegistrationRecord) => {
     setEditingTrialRecord(trial);
     setTrialRegistrationType(trial.Customer_type);
+    setTrialModalInitialSection('profil');
     setIsTrialReviewModalOpen(false);
     setIsTrialRegistrationModalOpen(true);
   };
@@ -460,70 +472,70 @@ export default function App() {
     });
   };
 
+  // Mulai Sesi Trial: Langsung buka Bagian 4 (Asesmen Fisik Trial) di form trial (TIDAK MASUK ke Scorecard Utama)
   const handleStartTrialSession = (trial: TrialRegistrationRecord) => {
-    setIsEditing(false);
-    setEditingRowOriginalId(null);
     setIsTrialReviewModalOpen(false);
-
-    // Auto populate Scorecard Form from Trial Registration
-    setFormData({
-      ...INITIAL_RECORD,
-      id: `rec-${Date.now()}`,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      entry_type: 'trial',
-      Customer_type: 'trial',
-      Full_Name: trial.Full_Name,
-      Gender: trial.Gender === 'Female' ? 'female' : 'male',
-      DoB: trial.DoB,
-      Umur: trial.Umur,
-      MemberID: trial.MemberID,
-      Test_Date: new Date().toISOString().split('T')[0],
-      Coaches: trial.Coaches && trial.Coaches.length > 0 ? trial.Coaches[0] : '',
-      notes: trial.formadults_catatan
-        ? `Catatan Calon Member: ${trial.formadults_catatan}`
-        : trial.formadults_riwayat === 'Ada'
-        ? `Riwayat Cedera: ${trial.formadults_riwayat_detail || 'Ada'}`
-        : '',
-    });
-
-    setCurrentTab('form');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-
-    confetti({
-      particleCount: 50,
-      spread: 60,
-      origin: { y: 0.4 },
-    });
-
-    setToastMessage({
-      text: `✓ Sesi Trial untuk ${trial.Full_Name} dimulai! Kategori 'Trial', Nama, DoB, dan Gender terisi otomatis. Pilih Coach yang bertugas.`,
-      type: 'success',
-    });
+    setEditingTrialRecord(trial);
+    setTrialRegistrationType(trial.Customer_type);
+    setTrialModalInitialSection('asesmen');
+    setIsTrialRegistrationModalOpen(true);
   };
 
+  // Upgrade Trial Customer menjadi MEMBER TCC
   const handleConvertToMember = (trial: TrialRegistrationRecord) => {
+    const officialMemberId = generateMemberId(); // e.g. TCC-8421
     const updatedTrial: TrialRegistrationRecord = {
       ...trial,
       trial_status: 'Member TCC',
+      converted_member_id: officialMemberId,
+      converted_at: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
     const updatedTrials = updateExistingTrial(updatedTrial);
     setTrials(updatedTrials);
 
-    // Also upgrade any existing scorecard with this MemberID to 'member'
-    const updatedRecords = records.map((r) => {
-      if (r.MemberID === trial.MemberID || r.Full_Name.toLowerCase() === trial.Full_Name.toLowerCase()) {
-        return {
-          ...r,
-          Customer_type: 'member' as CustomerType,
-          entry_type: 'member' as const,
-          updatedAt: new Date().toISOString(),
-        };
-      }
-      return r;
-    });
-    setRecords(updatedRecords);
+    // Pastikan calon member masuk ke records agar langsung muncul di MemberPickerModal (Tombol MEMBER TCC di Hal Utama)
+    const existingIndex = records.findIndex(
+      (r) =>
+        (r.MemberID && r.MemberID === trial.MemberID) ||
+        (r.Full_Name && r.Full_Name.toLowerCase() === trial.Full_Name.toLowerCase())
+    );
+
+    let nextRecords: ScoreCardRecord[];
+    if (existingIndex >= 0) {
+      nextRecords = [...records];
+      nextRecords[existingIndex] = {
+        ...nextRecords[existingIndex],
+        MemberID: officialMemberId,
+        Customer_type: 'member',
+        entry_type: 'member',
+        updatedAt: new Date().toISOString(),
+      };
+    } else {
+      const newMemberRecord: ScoreCardRecord = {
+        ...INITIAL_RECORD,
+        id: `rec-mem-${Date.now()}`,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        entry_type: 'member',
+        Customer_type: 'member',
+        Full_Name: trial.Full_Name,
+        Gender: trial.Gender === 'Female' ? 'female' : 'male',
+        DoB: trial.DoB,
+        Umur: trial.Umur,
+        MemberID: officialMemberId,
+        Test_Date: new Date().toISOString().split('T')[0],
+        Coaches: trial.Coaches && trial.Coaches.length > 0 ? trial.Coaches[0] : 'Mariskha Primasari',
+        notes: `Member TCC Baru - Dikonversi dari Trial (${trial.Customer_type}) [Ref ID: ${trial.MemberID}]`,
+      };
+      nextRecords = [newMemberRecord, ...records];
+    }
+
+    setRecords(nextRecords);
+    setStoredRecords(nextRecords);
+
+    // Sinkronisasi pembaruan ke Google Sheet
+    syncTrialToGoogleSheet(updatedTrial).catch(console.error);
 
     confetti({
       particleCount: 100,
@@ -532,8 +544,41 @@ export default function App() {
     });
 
     setToastMessage({
-      text: `🎉 Sukses! ${trial.Full_Name} resmi di-upgrade menjadi MEMBER TCC!`,
+      text: `🎉 Sukses! ${trial.Full_Name} resmi di-upgrade menjadi MEMBER TCC dengan ID: ${officialMemberId}! ID ini sekarang sudah terdaftar di tombol 'MEMBER TCC'.`,
       type: 'success',
+    });
+  };
+
+  // Batalkan / Rollback Status Member TCC (Reset kembali ke status Trial Customer)
+  const handleRevertTrialFromMember = (trial: TrialRegistrationRecord) => {
+    const previousConvertedId = trial.converted_member_id;
+
+    const updatedTrial: TrialRegistrationRecord = {
+      ...trial,
+      trial_status: 'Selesai Trial',
+      converted_member_id: undefined,
+      converted_at: undefined,
+      updatedAt: new Date().toISOString(),
+    };
+    const updatedTrials = updateExistingTrial(updatedTrial);
+    setTrials(updatedTrials);
+
+    // Cabut record member yang dibuat saat konversi agar tidak muncul di daftar pencarian member
+    const nextRecords = records.filter(
+      (r) =>
+        !(previousConvertedId && r.MemberID === previousConvertedId) &&
+        !(r.notes && r.notes.includes(`Ref ID: ${trial.MemberID}`))
+    );
+
+    setRecords(nextRecords);
+    setStoredRecords(nextRecords);
+
+    // Sinkronisasi status pembaruan ke Google Sheet jika terhubung
+    syncTrialToGoogleSheet(updatedTrial).catch(console.error);
+
+    setToastMessage({
+      text: `Status member untuk ${trial.Full_Name} berhasil dibatalkan dan dikembalikan ke status "Selesai Trial".`,
+      type: 'info',
     });
   };
 
@@ -966,6 +1011,7 @@ export default function App() {
               onEditTrial={handleEditTrial}
               onDeleteTrial={handleDeleteTrial}
               onConvertToMember={handleConvertToMember}
+              onRevertFromMember={handleRevertTrialFromMember}
               onSyncAllTrialsToDatabase={handleSyncAllTrialsToDatabase}
               isSyncingTrials={isSyncingTrials}
             />
@@ -1177,6 +1223,7 @@ export default function App() {
         onSave={handleSaveTrial}
         initialType={trialRegistrationType}
         editingTrial={editingTrialRecord}
+        initialSection={trialModalInitialSection}
       />
 
       {/* Modal: Lembar Review Profil & Riwayat Medis Calon Member */}
@@ -1191,6 +1238,7 @@ export default function App() {
           onStartTrialSession={handleStartTrialSession}
           onPrintConfirmation={handlePrintTrialConfirmation}
           onEditTrial={handleEditTrial}
+          onConvertToMember={handleConvertToMember}
         />
       )}
 

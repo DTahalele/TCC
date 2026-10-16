@@ -1,6 +1,22 @@
 import React from 'react';
 import { TrialRegistrationRecord } from '../types/trialRegistration';
-import { Play, Printer, Edit3, X, Calendar, Clock, AlertTriangle, ShieldCheck, Heart, User, Building, GraduationCap, CheckCircle } from 'lucide-react';
+import {
+  Play,
+  Printer,
+  Edit3,
+  X,
+  Calendar,
+  Clock,
+  AlertTriangle,
+  ShieldCheck,
+  Heart,
+  User,
+  Building,
+  GraduationCap,
+  CheckCircle,
+  UserCheck,
+  Award,
+} from 'lucide-react';
 
 interface TrialReviewModalProps {
   trial: TrialRegistrationRecord;
@@ -9,6 +25,7 @@ interface TrialReviewModalProps {
   onStartTrialSession: (trial: TrialRegistrationRecord) => void;
   onPrintConfirmation: (trial: TrialRegistrationRecord) => void;
   onEditTrial: (trial: TrialRegistrationRecord) => void;
+  onConvertToMember?: (trial: TrialRegistrationRecord) => void;
 }
 
 export const TrialReviewModal: React.FC<TrialReviewModalProps> = ({
@@ -18,6 +35,7 @@ export const TrialReviewModal: React.FC<TrialReviewModalProps> = ({
   onStartTrialSession,
   onPrintConfirmation,
   onEditTrial,
+  onConvertToMember,
 }) => {
   if (!isOpen) return null;
 
@@ -26,6 +44,22 @@ export const TrialReviewModal: React.FC<TrialReviewModalProps> = ({
     trial.formadults_riwayat === 'Ada' ||
     trial.formadults_cideraOperasi === 'Ada' ||
     trial.formadults_medisKhusus === 'Ada';
+
+  const hasPhysicalAssessment = Boolean(
+    trial.lower_body ||
+    trial.core ||
+    trial.upper_body ||
+    trial.body_control ||
+    trial.flexibility ||
+    trial.agility ||
+    trial.speed ||
+    trial.integrity ||
+    trial.principled ||
+    trial.perseverance ||
+    trial.believe_god ||
+    trial.kekuatan_utama ||
+    trial.rekomendasi_program
+  );
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
@@ -66,15 +100,17 @@ export const TrialReviewModal: React.FC<TrialReviewModalProps> = ({
 
         {/* Modal Scrollable Content */}
         <div className="p-6 space-y-6 overflow-y-auto">
-          {/* Main Action Callout for Coach: Mulai Sesi Trial */}
+          {/* Main Action Callout for Coach: Mulai Asesmen Fisik Trial */}
           <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="space-y-1 text-center sm:text-left">
               <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300 uppercase tracking-wide flex items-center justify-center sm:justify-start gap-1.5">
                 <CheckCircle className="w-4 h-4 text-emerald-600" />
-                Siap untuk Asesmen Fisik?
+                {trial.trial_status === 'Selesai Trial' ? 'Hasil Asesmen Fisik Tersimpan' : 'Asesmen Fisik Khusus Peserta Trial'}
               </span>
               <p className="text-xs text-emerald-700 dark:text-emerald-400">
-                Klik tombol di samping untuk langsung membuka form <strong>Physical Fitness Score Card</strong>. Nama, DoB, Gender, dan Kategori Trial akan otomatis terisi!
+                {trial.trial_status === 'Selesai Trial'
+                  ? 'Asesmen fisik dan rekomendasi program telah dilengkapi oleh pelatih. Anda dapat meninjau atau memperbarui nilainya.'
+                  : 'Klik tombol di samping untuk langsung mengisi <strong>Bagian 4 (Asesmen Fisik & Rekomendasi Program)</strong> khusus calon member trial ini.'}
               </p>
             </div>
 
@@ -84,7 +120,7 @@ export const TrialReviewModal: React.FC<TrialReviewModalProps> = ({
               className="w-full sm:w-auto shrink-0 flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-extrabold text-sm shadow-md shadow-emerald-600/30 transition-all cursor-pointer"
             >
               <Play className="w-4 h-4 fill-white" />
-              <span>Mulai Sesi Trial</span>
+              <span>{trial.trial_status === 'Selesai Trial' ? 'Buka / Edit Asesmen' : 'Mulai Asesmen Fisik'}</span>
             </button>
           </div>
 
@@ -287,6 +323,226 @@ export const TrialReviewModal: React.FC<TrialReviewModalProps> = ({
               </div>
             </div>
           </div>
+
+          {/* SECTION 4: ASESMEN FISIK & REKOMENDASI PROGRAM PELATIH */}
+          <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-2">
+              <div className="flex items-center gap-2">
+                <span className="w-6 h-6 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold text-xs">
+                  4
+                </span>
+                <h4 className="font-extrabold uppercase text-xs sm:text-sm tracking-wide text-slate-900 dark:text-white">
+                  Hasil Asesmen Fisik Trial & Rekomendasi Program Pelatih
+                </h4>
+              </div>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                hasPhysicalAssessment
+                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                  : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+              }`}>
+                {hasPhysicalAssessment ? '✓ Selesai Dinilai' : 'Menunggu Sesi Coach'}
+              </span>
+            </div>
+
+            {hasPhysicalAssessment ? (
+              <div className="space-y-4 text-xs">
+                {/* 1. Strength */}
+                <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-slate-800 dark:text-slate-200 uppercase text-[11px]">
+                      1. Strength Assessment (Skor 1 - 5)
+                    </span>
+                    <span className="font-mono font-bold text-emerald-600">
+                      Rata-rata: {trial.avg_strength ?? '-'}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="p-2 rounded bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-center">
+                      <span className="text-[10px] text-slate-500 block">Lower Body</span>
+                      <span className="text-base font-extrabold text-slate-900 dark:text-white">{trial.lower_body ?? '-'}</span>
+                    </div>
+                    <div className="p-2 rounded bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-center">
+                      <span className="text-[10px] text-slate-500 block">Core</span>
+                      <span className="text-base font-extrabold text-slate-900 dark:text-white">{trial.core ?? '-'}</span>
+                    </div>
+                    <div className="p-2 rounded bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-center">
+                      <span className="text-[10px] text-slate-500 block">Upper Body</span>
+                      <span className="text-base font-extrabold text-slate-900 dark:text-white">{trial.upper_body ?? '-'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. Skills */}
+                <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-slate-800 dark:text-slate-200 uppercase text-[11px]">
+                      2. Skills Related Fitness - Running Lane (Skor 1 - 5)
+                    </span>
+                    <span className="font-mono font-bold text-sky-600">
+                      Rata-rata: {trial.avg_skill ?? '-'}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <div className="p-2 rounded bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-center">
+                      <span className="text-[10px] text-slate-500 block">Body Control</span>
+                      <span className="text-base font-extrabold text-slate-900 dark:text-white">{trial.body_control ?? '-'}</span>
+                    </div>
+                    <div className="p-2 rounded bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-center">
+                      <span className="text-[10px] text-slate-500 block">Flexibility</span>
+                      <span className="text-base font-extrabold text-slate-900 dark:text-white">{trial.flexibility ?? '-'}</span>
+                    </div>
+                    <div className="p-2 rounded bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-center">
+                      <span className="text-[10px] text-slate-500 block">Agility</span>
+                      <span className="text-base font-extrabold text-slate-900 dark:text-white">{trial.agility ?? '-'}</span>
+                    </div>
+                    <div className="p-2 rounded bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-center">
+                      <span className="text-[10px] text-slate-500 block">Speed</span>
+                      <span className="text-base font-extrabold text-slate-900 dark:text-white">{trial.speed ?? '-'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Evaluasi Karakter, Sikap & Etos Latihan */}
+                <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-slate-800 dark:text-slate-200 uppercase text-[11px]">
+                      3. Evaluasi Karakter, Sikap & Etos Latihan (Skor 1 - 5)
+                    </span>
+                    <span className="font-mono font-bold text-indigo-600">
+                      Rata-rata: {trial.avg_character !== null && trial.avg_character !== undefined ? Number(trial.avg_character).toFixed(2) : '-'} / 5.00
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <div className="p-2 rounded bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-center">
+                      <span className="text-[10px] text-slate-500 block">Integritas</span>
+                      <span className="text-base font-extrabold text-slate-900 dark:text-white">{trial.integrity ?? '-'}</span>
+                    </div>
+                    <div className="p-2 rounded bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-center">
+                      <span className="text-[10px] text-slate-500 block">Berprinsip</span>
+                      <span className="text-base font-extrabold text-slate-900 dark:text-white">{trial.principled ?? '-'}</span>
+                    </div>
+                    <div className="p-2 rounded bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-center">
+                      <span className="text-[10px] text-slate-500 block">Daya Juang</span>
+                      <span className="text-base font-extrabold text-slate-900 dark:text-white">{trial.perseverance ?? '-'}</span>
+                    </div>
+                    <div className="p-2 rounded bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-center">
+                      <span className="text-[10px] text-slate-500 block">Rasa Syukur</span>
+                      <span className="text-base font-extrabold text-slate-900 dark:text-white">{trial.believe_god ?? '-'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* DEDICATED SUMMARY BOX: TOTAL AVERAGE OVERALL (STRENGTH & SKILL RELATED FITNESS) */}
+                {(() => {
+                  const validAvgs = [trial.avg_strength, trial.avg_skill].filter(
+                    (n): n is number => typeof n === 'number' && n > 0
+                  );
+                  const overallPhysicalAvg =
+                    validAvgs.length > 0
+                      ? Number((validAvgs.reduce((a, b) => a + b, 0) / validAvgs.length).toFixed(2))
+                      : null;
+
+                  const getOverallGrade = (avg: number | null) => {
+                    if (avg === null) return 'Menunggu Sesi Asesmen';
+                    if (avg >= 4.0) return 'EXCELLENT (SANGAT BAIK)';
+                    if (avg >= 3.25) return 'GOOD (SOLID FOUNDATION)';
+                    if (avg >= 2.5) return 'FAIR (NEED DEVELOPMENT)';
+                    return 'BASIC FUNDAMENTAL LEVEL';
+                  };
+
+                  return (
+                    <div className="bg-slate-950 text-white rounded-xl p-4 border border-slate-800 shadow-md">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3 mb-3">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <Award className="w-5 h-5 text-amber-400 shrink-0" />
+                            <h4 className="text-xs sm:text-sm font-black uppercase tracking-wider text-white">
+                              TOTAL AVERAGE OVERALL / SUMMARY (STRENGTH & SKILL)
+                            </h4>
+                          </div>
+                          <p className="text-[10px] text-slate-400 mt-0.5">
+                            Kalkulasi performa gabungan dari sesi 1 (Strength) dan sesi 2 (Skills Running Lane) calon member.
+                          </p>
+                        </div>
+
+                        <div className="text-left sm:text-right shrink-0">
+                          <span className="text-[9px] uppercase font-bold text-slate-400 block tracking-wider">TOTAL OVERALL SCORE</span>
+                          <span className="text-2xl font-black font-mono text-emerald-400 leading-none">
+                            {overallPhysicalAvg !== null ? `${overallPhysicalAvg.toFixed(2)}` : '-.--'}
+                            <span className="text-xs text-slate-400 font-normal"> / 5.00</span>
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+                        <div className="bg-slate-900/90 p-2.5 rounded-lg border border-slate-800 flex justify-between items-center">
+                          <span className="text-[11px] text-slate-300 font-semibold">1. Summary Strength:</span>
+                          <span className="font-bold font-mono text-emerald-400 text-xs">
+                            {trial.avg_strength !== null && trial.avg_strength !== undefined ? `${trial.avg_strength.toFixed(2)}` : '-'} / 5.00
+                          </span>
+                        </div>
+
+                        <div className="bg-slate-900/90 p-2.5 rounded-lg border border-slate-800 flex justify-between items-center">
+                          <span className="text-[11px] text-slate-300 font-semibold">2. Summary Skill:</span>
+                          <span className="font-bold font-mono text-sky-400 text-xs">
+                            {trial.avg_skill !== null && trial.avg_skill !== undefined ? `${trial.avg_skill.toFixed(2)}` : '-'} / 5.00
+                          </span>
+                        </div>
+
+                        <div className="bg-slate-900/90 p-2.5 rounded-lg border border-slate-800 flex justify-between items-center">
+                          <span className="text-[11px] text-slate-300 font-semibold">Predikat Fisik:</span>
+                          <span className="font-extrabold text-amber-300 text-[11px] truncate max-w-[150px]">
+                            {getOverallGrade(overallPhysicalAvg)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* 4. Rekomendasi Program Pelatih */}
+                <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2.5">
+                  <span className="font-bold text-slate-800 dark:text-slate-200 uppercase text-[11px] block border-b pb-1">
+                    4. Catatan & Rekomendasi Program Pelatih
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <span className="text-[11px] text-slate-500 block font-semibold">Kekuatan Utama:</span>
+                      <span className="font-bold text-slate-900 dark:text-white">{trial.kekuatan_utama || '-'}</span>
+                    </div>
+                    <div>
+                      <span className="text-[11px] text-slate-500 block font-semibold">Area Perlu Dikembangkan:</span>
+                      <span className="font-bold text-slate-900 dark:text-white">{trial.perlu_develop || '-'}</span>
+                    </div>
+                    <div>
+                      <span className="text-[11px] text-slate-500 block font-semibold">Kategori Performa:</span>
+                      <span className="font-bold text-emerald-600 dark:text-emerald-400">{trial.cat_performance || '-'}</span>
+                    </div>
+                    <div>
+                      <span className="text-[11px] text-slate-500 block font-semibold">Rekomendasi Program:</span>
+                      <span className="font-bold text-indigo-600 dark:text-indigo-400">{trial.rekomendasi_program || '-'}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="p-4 rounded-xl bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 text-xs text-amber-900 dark:text-amber-300 flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div>
+                  <p className="font-bold mb-0.5">Asesmen Fisik & Rekomendasi Program Belum Diisi</p>
+                  <p className="text-[11px] text-amber-800/80 dark:text-amber-400">
+                    Bagian ini diisi oleh Coach saat atau sesudah sesi trial berlangsung. Admin telah selesai melengkapi data Bagian 1 s/d 3.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onStartTrialSession(trial)}
+                  className="shrink-0 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs cursor-pointer shadow-xs"
+                >
+                  Isi Asesmen Sekarang
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Modal Footer Controls */}
@@ -295,26 +551,38 @@ export const TrialReviewModal: React.FC<TrialReviewModalProps> = ({
             <button
               type="button"
               onClick={() => onPrintConfirmation(trial)}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition-colors shadow-2xs"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition-colors shadow-2xs cursor-pointer"
             >
               <Printer className="w-3.5 h-3.5" />
-              <span>Cetak Konfirmasi (PDF)</span>
+              <span>Cetak Review Lengkap (PDF)</span>
             </button>
 
             <button
               type="button"
               onClick={() => onEditTrial(trial)}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition-colors shadow-2xs"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition-colors shadow-2xs cursor-pointer"
             >
               <Edit3 className="w-3.5 h-3.5 text-sky-600" />
-              <span>Edit Data / Jadwal</span>
+              <span>Edit Data Registrasi</span>
             </button>
+
+            {onConvertToMember && trial.trial_status !== 'Member TCC' && (
+              <button
+                type="button"
+                onClick={() => onConvertToMember(trial)}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-colors cursor-pointer"
+                title="Customer memutuskan bergabung, upgrade menjadi MEMBER TCC"
+              >
+                <UserCheck className="w-3.5 h-3.5" />
+                <span>Upgrade ke MEMBER TCC</span>
+              </button>
+            )}
           </div>
 
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
+            className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
           >
             Tutup
           </button>

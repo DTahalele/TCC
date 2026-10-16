@@ -8,6 +8,7 @@ import {
   PERFORMANCE_CATEGORIES,
   PROGRAM_OPTIONS,
   getIndonesianDayName,
+  computeScheduleStatus,
 } from '../types/trialRegistration';
 import { COACHES_LIST } from '../types/scoreCard';
 import { calculateAge } from '../utils/calculations';
@@ -27,12 +28,15 @@ import {
   RotateCcw,
 } from 'lucide-react';
 
+export type TrialTabSection = 'profil' | 'riwayat' | 'sekolah' | 'orangtua' | 'medis' | 'asesmen';
+
 interface TrialRegistrationModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (record: TrialRegistrationRecord) => void;
   initialType?: TrialCustomerType;
   editingTrial?: TrialRegistrationRecord | null;
+  initialSection?: 'profil' | 'riwayat' | 'sekolah' | 'orangtua' | 'medis' | 'asesmen';
 }
 
 export const TrialRegistrationModal: React.FC<TrialRegistrationModalProps> = ({
@@ -41,6 +45,7 @@ export const TrialRegistrationModal: React.FC<TrialRegistrationModalProps> = ({
   onSave,
   initialType = 'Trial Adults',
   editingTrial,
+  initialSection = 'profil',
 }) => {
   const [formData, setFormData] = useState<TrialRegistrationRecord>(() => {
     if (editingTrial) return editingTrial;
@@ -50,12 +55,22 @@ export const TrialRegistrationModal: React.FC<TrialRegistrationModalProps> = ({
       id: `trial-${Date.now()}`,
       MemberID: `TCC-TR-${randomId}`,
       Customer_type: initialType,
+      schedule_status: 'Pending',
+      trial_status: 'Menunggu Trial',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
   });
 
-  const [activeTabSection, setActiveTabSection] = useState<'profil' | 'riwayat' | 'medis' | 'asesmen'>('profil');
+  const getEffectiveSection = (sec?: string): TrialTabSection => {
+    if (sec === 'riwayat') return 'sekolah';
+    if (sec === 'orangtua' || sec === 'sekolah' || sec === 'medis' || sec === 'asesmen') return sec;
+    return 'profil';
+  };
+
+  const [activeTabSection, setActiveTabSection] = useState<TrialTabSection>(() =>
+    getEffectiveSection(initialSection)
+  );
 
   // Reset or initialize when modal opens or editingTrial changes
   useEffect(() => {
@@ -68,11 +83,17 @@ export const TrialRegistrationModal: React.FC<TrialRegistrationModalProps> = ({
         id: `trial-${Date.now()}`,
         MemberID: `TCC-TR-${randomId}`,
         Customer_type: initialType,
+        schedule_status: 'Pending',
+        trial_status: 'Menunggu Trial',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       });
     }
-  }, [editingTrial, initialType, isOpen]);
+
+    if (isOpen) {
+      setActiveTabSection(getEffectiveSection(initialSection));
+    }
+  }, [editingTrial, initialType, isOpen, initialSection]);
 
   if (!isOpen) return null;
 
@@ -88,16 +109,10 @@ export const TrialRegistrationModal: React.FC<TrialRegistrationModalProps> = ({
       // Auto compute Day if Trial_Date changes
       if (field === 'Trial_Date') {
         updated.Trial_Day = getIndonesianDayName(value);
-        if (value && updated.Trial_Time) {
-          updated.schedule_status = 'Confirmed';
-        }
       }
 
-      if (field === 'Trial_Time') {
-        if (value && updated.Trial_Date) {
-          updated.schedule_status = 'Confirmed';
-        }
-      }
+      // Auto recalculate schedule_status: Confirmed HANYA JIKA Tanggal + Hari + Waktu + Coach terpilih!
+      updated.schedule_status = computeScheduleStatus(updated);
 
       // Auto averages for physical assessments
       if (field === 'lower_body' || field === 'core' || field === 'upper_body') {
@@ -132,11 +147,13 @@ export const TrialRegistrationModal: React.FC<TrialRegistrationModalProps> = ({
 
   const handleToggleCoach = (coachName: string) => {
     const currentCoaches = formData.Coaches || [];
+    let nextCoaches: string[];
     if (currentCoaches.includes(coachName)) {
-      handleChange('Coaches', currentCoaches.filter((c) => c !== coachName));
+      nextCoaches = currentCoaches.filter((c) => c !== coachName);
     } else {
-      handleChange('Coaches', [...currentCoaches, coachName]);
+      nextCoaches = [...currentCoaches, coachName];
     }
+    handleChange('Coaches', nextCoaches);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -145,10 +162,38 @@ export const TrialRegistrationModal: React.FC<TrialRegistrationModalProps> = ({
       alert('Mohon isi Nama Lengkap Calon Member.');
       return;
     }
-    onSave({
+
+    // Auto upgrade trial_status to 'Selesai Trial' if assessment section has been filled
+    const hasAssessmentData = Boolean(
+      formData.lower_body ||
+      formData.core ||
+      formData.upper_body ||
+      formData.body_control ||
+      formData.flexibility ||
+      formData.agility ||
+      formData.speed ||
+      formData.integrity ||
+      formData.principled ||
+      formData.perseverance ||
+      formData.believe_god ||
+      formData.kekuatan_utama ||
+      formData.perlu_develop ||
+      formData.cat_performance ||
+      formData.rekomendasi_program
+    );
+
+    const finalTrialStatus = hasAssessmentData && formData.trial_status === 'Menunggu Trial'
+      ? 'Selesai Trial'
+      : formData.trial_status;
+
+    const finalRecord: TrialRegistrationRecord = {
       ...formData,
+      schedule_status: computeScheduleStatus(formData),
+      trial_status: finalTrialStatus,
       updatedAt: new Date().toISOString(),
-    });
+    };
+
+    onSave(finalRecord);
   };
 
   const handleClear = () => {
@@ -230,12 +275,12 @@ export const TrialRegistrationModal: React.FC<TrialRegistrationModalProps> = ({
             </div>
           </div>
 
-          {/* Section Navigation Tabs */}
-          <div className="flex items-center gap-1 text-xs">
+          {/* Section Navigation Tabs (1 s/d 5 Sesuai Struktur CSV) */}
+          <div className="flex items-center gap-1 text-xs overflow-x-auto pb-1 sm:pb-0">
             <button
               type="button"
               onClick={() => setActiveTabSection('profil')}
-              className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+              className={`px-3 py-1.5 rounded-lg font-bold transition-all shrink-0 ${
                 activeTabSection === 'profil'
                   ? 'bg-emerald-600 text-white shadow-xs'
                   : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
@@ -245,36 +290,47 @@ export const TrialRegistrationModal: React.FC<TrialRegistrationModalProps> = ({
             </button>
             <button
               type="button"
-              onClick={() => setActiveTabSection('riwayat')}
-              className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
-                activeTabSection === 'riwayat'
+              onClick={() => setActiveTabSection('sekolah')}
+              className={`px-3 py-1.5 rounded-lg font-bold transition-all shrink-0 ${
+                activeTabSection === 'sekolah'
                   ? 'bg-emerald-600 text-white shadow-xs'
                   : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
               }`}
             >
-              {isKids ? '2. Sekolah & Orang Tua' : '2. Pekerjaan & Klub'}
+              {isKids ? '2. Sekolah & Klub' : '2. Klub & Olahraga'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTabSection('orangtua')}
+              className={`px-3 py-1.5 rounded-lg font-bold transition-all shrink-0 ${
+                activeTabSection === 'orangtua'
+                  ? 'bg-emerald-600 text-white shadow-xs'
+                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+              }`}
+            >
+              {isKids ? '3. Data Orang Tua / Wali' : '3. Pekerjaan & Perusahaan'}
             </button>
             <button
               type="button"
               onClick={() => setActiveTabSection('medis')}
-              className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+              className={`px-3 py-1.5 rounded-lg font-bold transition-all shrink-0 ${
                 activeTabSection === 'medis'
                   ? 'bg-emerald-600 text-white shadow-xs'
                   : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
               }`}
             >
-              3. Riwayat Medis / Cedera
+              4. Riwayat Medis / Cedera
             </button>
             <button
               type="button"
               onClick={() => setActiveTabSection('asesmen')}
-              className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+              className={`px-3 py-1.5 rounded-lg font-bold transition-all shrink-0 ${
                 activeTabSection === 'asesmen'
                   ? 'bg-emerald-600 text-white shadow-xs'
                   : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
               }`}
             >
-              4. Asesmen Fisik (Opsional)
+              5. Asesmen Fisik Trial
             </button>
           </div>
         </div>
@@ -974,9 +1030,25 @@ export const TrialRegistrationModal: React.FC<TrialRegistrationModalProps> = ({
               {/* Strength (1-5) */}
               <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 space-y-3">
                 <div className="flex items-center justify-between border-b pb-2">
-                  <h4 className="font-bold text-xs uppercase tracking-wider text-slate-800 dark:text-slate-200">
-                    1. Strength (Skor 1 - 5)
-                  </h4>
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-bold text-xs uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                      1. Strength (Skor 1 - 5)
+                    </h4>
+                    {(formData.lower_body || formData.core || formData.upper_body) && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleChange('lower_body', null);
+                          handleChange('core', null);
+                          handleChange('upper_body', null);
+                        }}
+                        className="text-[10px] font-bold text-rose-500 hover:text-rose-700 bg-rose-50 dark:bg-rose-950/40 px-2 py-0.5 rounded border border-rose-200 dark:border-rose-900 cursor-pointer"
+                        title="Kosongkan semua nilai Strength"
+                      >
+                        ✕ Reset Strength
+                      </button>
+                    )}
+                  </div>
                   <span className="text-xs font-bold text-emerald-600">
                     Average: {formData.avg_strength ?? '-'}
                   </span>
@@ -985,64 +1057,109 @@ export const TrialRegistrationModal: React.FC<TrialRegistrationModalProps> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                   {/* Lower Body */}
                   <div>
-                    <label className="font-bold block mb-1">A. Lower Body</label>
-                    <div className="flex gap-1">
-                      {[1, 2, 3, 4, 5].map((lvl) => (
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="font-bold">A. Lower Body</label>
+                      {formData.lower_body !== null && formData.lower_body !== undefined && (
                         <button
-                          key={lvl}
                           type="button"
-                          onClick={() => handleChange('lower_body', lvl)}
-                          className={`flex-1 py-1 rounded-lg font-bold border text-xs ${
-                            formData.lower_body === lvl
-                              ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900'
-                              : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700'
-                          }`}
+                          onClick={() => handleChange('lower_body', null)}
+                          className="text-[10px] text-rose-500 hover:underline font-bold"
                         >
-                          {lvl}
+                          ✕ Kosongkan
                         </button>
-                      ))}
+                      )}
+                    </div>
+                    <div className="flex gap-1">
+                      {[1, 2, 3, 4, 5].map((lvl) => {
+                        const isSel = formData.lower_body === lvl;
+                        return (
+                          <button
+                            key={lvl}
+                            type="button"
+                            onClick={() => handleChange('lower_body', isSel ? null : lvl)}
+                            title={isSel ? 'Klik lagi untuk mengosongkan nilai' : `Pilih nilai ${lvl}`}
+                            className={`flex-1 py-1 rounded-lg font-bold border text-xs cursor-pointer transition-all ${
+                              isSel
+                                ? 'bg-emerald-600 text-white border-emerald-600 ring-2 ring-emerald-500/30 shadow-xs'
+                                : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
+                            }`}
+                          >
+                            {lvl}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 
                   {/* Core */}
                   <div>
-                    <label className="font-bold block mb-1">B. Core</label>
-                    <div className="flex gap-1">
-                      {[1, 2, 3, 4, 5].map((lvl) => (
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="font-bold">B. Core</label>
+                      {formData.core !== null && formData.core !== undefined && (
                         <button
-                          key={lvl}
                           type="button"
-                          onClick={() => handleChange('core', lvl)}
-                          className={`flex-1 py-1 rounded-lg font-bold border text-xs ${
-                            formData.core === lvl
-                              ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900'
-                              : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700'
-                          }`}
+                          onClick={() => handleChange('core', null)}
+                          className="text-[10px] text-rose-500 hover:underline font-bold"
                         >
-                          {lvl}
+                          ✕ Kosongkan
                         </button>
-                      ))}
+                      )}
+                    </div>
+                    <div className="flex gap-1">
+                      {[1, 2, 3, 4, 5].map((lvl) => {
+                        const isSel = formData.core === lvl;
+                        return (
+                          <button
+                            key={lvl}
+                            type="button"
+                            onClick={() => handleChange('core', isSel ? null : lvl)}
+                            title={isSel ? 'Klik lagi untuk mengosongkan nilai' : `Pilih nilai ${lvl}`}
+                            className={`flex-1 py-1 rounded-lg font-bold border text-xs cursor-pointer transition-all ${
+                              isSel
+                                ? 'bg-emerald-600 text-white border-emerald-600 ring-2 ring-emerald-500/30 shadow-xs'
+                                : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
+                            }`}
+                          >
+                            {lvl}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 
                   {/* Upper Body */}
                   <div>
-                    <label className="font-bold block mb-1">C. Upper Body</label>
-                    <div className="flex gap-1">
-                      {[1, 2, 3, 4, 5].map((lvl) => (
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="font-bold">C. Upper Body</label>
+                      {formData.upper_body !== null && formData.upper_body !== undefined && (
                         <button
-                          key={lvl}
                           type="button"
-                          onClick={() => handleChange('upper_body', lvl)}
-                          className={`flex-1 py-1 rounded-lg font-bold border text-xs ${
-                            formData.upper_body === lvl
-                              ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900'
-                              : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700'
-                          }`}
+                          onClick={() => handleChange('upper_body', null)}
+                          className="text-[10px] text-rose-500 hover:underline font-bold"
                         >
-                          {lvl}
+                          ✕ Kosongkan
                         </button>
-                      ))}
+                      )}
+                    </div>
+                    <div className="flex gap-1">
+                      {[1, 2, 3, 4, 5].map((lvl) => {
+                        const isSel = formData.upper_body === lvl;
+                        return (
+                          <button
+                            key={lvl}
+                            type="button"
+                            onClick={() => handleChange('upper_body', isSel ? null : lvl)}
+                            title={isSel ? 'Klik lagi untuk mengosongkan nilai' : `Pilih nilai ${lvl}`}
+                            className={`flex-1 py-1 rounded-lg font-bold border text-xs cursor-pointer transition-all ${
+                              isSel
+                                ? 'bg-emerald-600 text-white border-emerald-600 ring-2 ring-emerald-500/30 shadow-xs'
+                                : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
+                            }`}
+                          >
+                            {lvl}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
@@ -1051,9 +1168,26 @@ export const TrialRegistrationModal: React.FC<TrialRegistrationModalProps> = ({
               {/* Skills Related Fitness (1-5) */}
               <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 space-y-3">
                 <div className="flex items-center justify-between border-b pb-2">
-                  <h4 className="font-bold text-xs uppercase tracking-wider text-slate-800 dark:text-slate-200">
-                    2. Skills Related Fitness - Running Lane (Skor 1 - 5)
-                  </h4>
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-bold text-xs uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                      2. Skills Related Fitness - Running Lane (Skor 1 - 5)
+                    </h4>
+                    {(formData.body_control || formData.flexibility || formData.agility || formData.speed) && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleChange('body_control', null);
+                          handleChange('flexibility', null);
+                          handleChange('agility', null);
+                          handleChange('speed', null);
+                        }}
+                        className="text-[10px] font-bold text-rose-500 hover:text-rose-700 bg-rose-50 dark:bg-rose-950/40 px-2 py-0.5 rounded border border-rose-200 dark:border-rose-900 cursor-pointer"
+                        title="Kosongkan semua nilai Skill"
+                      >
+                        ✕ Reset Skill
+                      </button>
+                    )}
+                  </div>
                   <span className="text-xs font-bold text-emerald-600">
                     Average: {formData.avg_skill ?? '-'}
                   </span>
@@ -1061,82 +1195,377 @@ export const TrialRegistrationModal: React.FC<TrialRegistrationModalProps> = ({
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
                   <div>
-                    <label className="font-bold block mb-1">Body Control</label>
-                    <div className="flex gap-1">
-                      {[1, 2, 3, 4, 5].map((lvl) => (
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="font-bold">Body Control</label>
+                      {formData.body_control !== null && formData.body_control !== undefined && (
                         <button
-                          key={lvl}
                           type="button"
-                          onClick={() => handleChange('body_control', lvl)}
-                          className={`flex-1 py-1 rounded-lg font-bold border text-xs ${
-                            formData.body_control === lvl
-                              ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900'
-                              : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700'
-                          }`}
+                          onClick={() => handleChange('body_control', null)}
+                          className="text-[10px] text-rose-500 hover:underline font-bold"
                         >
-                          {lvl}
+                          ✕ Reset
                         </button>
-                      ))}
+                      )}
+                    </div>
+                    <div className="flex gap-1">
+                      {[1, 2, 3, 4, 5].map((lvl) => {
+                        const isSel = formData.body_control === lvl;
+                        return (
+                          <button
+                            key={lvl}
+                            type="button"
+                            onClick={() => handleChange('body_control', isSel ? null : lvl)}
+                            title={isSel ? 'Klik lagi untuk mengosongkan nilai' : `Pilih nilai ${lvl}`}
+                            className={`flex-1 py-1 rounded-lg font-bold border text-xs cursor-pointer transition-all ${
+                              isSel
+                                ? 'bg-sky-600 text-white border-sky-600 ring-2 ring-sky-500/30 shadow-xs'
+                                : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
+                            }`}
+                          >
+                            {lvl}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 
                   <div>
-                    <label className="font-bold block mb-1">Flexibility</label>
-                    <div className="flex gap-1">
-                      {[1, 2, 3, 4, 5].map((lvl) => (
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="font-bold">Flexibility</label>
+                      {formData.flexibility !== null && formData.flexibility !== undefined && (
                         <button
-                          key={lvl}
                           type="button"
-                          onClick={() => handleChange('flexibility', lvl)}
-                          className={`flex-1 py-1 rounded-lg font-bold border text-xs ${
-                            formData.flexibility === lvl
-                              ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900'
-                              : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700'
-                          }`}
+                          onClick={() => handleChange('flexibility', null)}
+                          className="text-[10px] text-rose-500 hover:underline font-bold"
                         >
-                          {lvl}
+                          ✕ Reset
                         </button>
-                      ))}
+                      )}
+                    </div>
+                    <div className="flex gap-1">
+                      {[1, 2, 3, 4, 5].map((lvl) => {
+                        const isSel = formData.flexibility === lvl;
+                        return (
+                          <button
+                            key={lvl}
+                            type="button"
+                            onClick={() => handleChange('flexibility', isSel ? null : lvl)}
+                            title={isSel ? 'Klik lagi untuk mengosongkan nilai' : `Pilih nilai ${lvl}`}
+                            className={`flex-1 py-1 rounded-lg font-bold border text-xs cursor-pointer transition-all ${
+                              isSel
+                                ? 'bg-sky-600 text-white border-sky-600 ring-2 ring-sky-500/30 shadow-xs'
+                                : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
+                            }`}
+                          >
+                            {lvl}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 
                   <div>
-                    <label className="font-bold block mb-1">Agility</label>
-                    <div className="flex gap-1">
-                      {[1, 2, 3, 4, 5].map((lvl) => (
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="font-bold">Agility</label>
+                      {formData.agility !== null && formData.agility !== undefined && (
                         <button
-                          key={lvl}
                           type="button"
-                          onClick={() => handleChange('agility', lvl)}
-                          className={`flex-1 py-1 rounded-lg font-bold border text-xs ${
-                            formData.agility === lvl
-                              ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900'
-                              : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700'
-                          }`}
+                          onClick={() => handleChange('agility', null)}
+                          className="text-[10px] text-rose-500 hover:underline font-bold"
                         >
-                          {lvl}
+                          ✕ Reset
                         </button>
-                      ))}
+                      )}
+                    </div>
+                    <div className="flex gap-1">
+                      {[1, 2, 3, 4, 5].map((lvl) => {
+                        const isSel = formData.agility === lvl;
+                        return (
+                          <button
+                            key={lvl}
+                            type="button"
+                            onClick={() => handleChange('agility', isSel ? null : lvl)}
+                            title={isSel ? 'Klik lagi untuk mengosongkan nilai' : `Pilih nilai ${lvl}`}
+                            className={`flex-1 py-1 rounded-lg font-bold border text-xs cursor-pointer transition-all ${
+                              isSel
+                                ? 'bg-sky-600 text-white border-sky-600 ring-2 ring-sky-500/30 shadow-xs'
+                                : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
+                            }`}
+                          >
+                            {lvl}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 
                   <div>
-                    <label className="font-bold block mb-1">Speed</label>
-                    <div className="flex gap-1">
-                      {[1, 2, 3, 4, 5].map((lvl) => (
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="font-bold">Speed</label>
+                      {formData.speed !== null && formData.speed !== undefined && (
                         <button
-                          key={lvl}
                           type="button"
-                          onClick={() => handleChange('speed', lvl)}
-                          className={`flex-1 py-1 rounded-lg font-bold border text-xs ${
-                            formData.speed === lvl
-                              ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900'
-                              : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700'
-                          }`}
+                          onClick={() => handleChange('speed', null)}
+                          className="text-[10px] text-rose-500 hover:underline font-bold"
                         >
-                          {lvl}
+                          ✕ Reset
                         </button>
-                      ))}
+                      )}
+                    </div>
+                    <div className="flex gap-1">
+                      {[1, 2, 3, 4, 5].map((lvl) => {
+                        const isSel = formData.speed === lvl;
+                        return (
+                          <button
+                            key={lvl}
+                            type="button"
+                            onClick={() => handleChange('speed', isSel ? null : lvl)}
+                            title={isSel ? 'Klik lagi untuk mengosongkan nilai' : `Pilih nilai ${lvl}`}
+                            className={`flex-1 py-1 rounded-lg font-bold border text-xs cursor-pointer transition-all ${
+                              isSel
+                                ? 'bg-sky-600 text-white border-sky-600 ring-2 ring-sky-500/30 shadow-xs'
+                                : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
+                            }`}
+                          >
+                            {lvl}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* DEDICATED SUMMARY BOX: TOTAL AVERAGE OVERALL (STRENGTH & SKILL RELATED FITNESS) */}
+              {(() => {
+                const validAvgs = [formData.avg_strength, formData.avg_skill].filter(
+                  (n): n is number => typeof n === 'number' && n > 0
+                );
+                const overallPhysicalAvg =
+                  validAvgs.length > 0
+                    ? Number((validAvgs.reduce((a, b) => a + b, 0) / validAvgs.length).toFixed(2))
+                    : null;
+
+                const getOverallGrade = (avg: number | null) => {
+                  if (avg === null) return 'Menunggu Pengisian Skor';
+                  if (avg >= 4.0) return 'EXCELLENT (SANGAT BAIK)';
+                  if (avg >= 3.25) return 'GOOD (SOLID FOUNDATION)';
+                  if (avg >= 2.5) return 'FAIR (NEED DEVELOPMENT)';
+                  return 'BASIC FUNDAMENTAL LEVEL';
+                };
+
+                return (
+                  <div className="bg-slate-950 text-white rounded-xl p-4 border border-slate-800 shadow-sm space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-2">
+                      <div className="flex items-center gap-2">
+                        <Award className="w-5 h-5 text-amber-400 shrink-0" />
+                        <div>
+                          <h4 className="text-xs font-black uppercase tracking-wider text-white">
+                            Total Average Overall / Summary (Strength & Skill Related Fitness)
+                          </h4>
+                          <p className="text-[10px] text-slate-400">
+                            Kalkulasi otomatis skor rata-rata gabungan sesi 1 (Strength) & sesi 2 (Skill)
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-left sm:text-right shrink-0">
+                        <span className="text-[9px] uppercase font-bold text-slate-400 block tracking-wider">TOTAL OVERALL SCORE</span>
+                        <span className="text-xl font-black font-mono text-emerald-400">
+                          {overallPhysicalAvg !== null ? `${overallPhysicalAvg.toFixed(2)}` : '-.--'}
+                          <span className="text-xs text-slate-400 font-normal"> / 5.00</span>
+                        </span>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                      <div className="bg-slate-900/90 rounded-lg p-2.5 border border-slate-800 flex justify-between items-center">
+                        <span className="text-[10px] text-slate-400 font-semibold uppercase">1. Avg Strength:</span>
+                        <span className="font-mono font-bold text-emerald-400 text-xs">
+                          {formData.avg_strength !== null && formData.avg_strength !== undefined ? `${formData.avg_strength.toFixed(2)}` : '-'}
+                        </span>
+                      </div>
+                      <div className="bg-slate-900/90 rounded-lg p-2.5 border border-slate-800 flex justify-between items-center">
+                        <span className="text-[10px] text-slate-400 font-semibold uppercase">2. Avg Skill:</span>
+                        <span className="font-mono font-bold text-sky-400 text-xs">
+                          {formData.avg_skill !== null && formData.avg_skill !== undefined ? `${formData.avg_skill.toFixed(2)}` : '-'}
+                        </span>
+                      </div>
+                      <div className="bg-slate-900/90 rounded-lg p-2.5 border border-slate-800 flex justify-between items-center">
+                        <span className="text-[10px] text-slate-400 font-semibold uppercase">Predikat Fisik:</span>
+                        <span className="font-bold text-amber-300 text-xs truncate">
+                          {getOverallGrade(overallPhysicalAvg)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* 3. Evaluasi Karakter, Sikap & Etos Latihan (1-5) */}
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 space-y-3">
+                <div className="flex items-center justify-between border-b pb-2">
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-bold text-xs uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                      3. Evaluasi Karakter, Sikap & Etos Latihan (Skor 1 - 5)
+                    </h4>
+                    {(formData.integrity || formData.principled || formData.perseverance || formData.believe_god) && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleChange('integrity', null);
+                          handleChange('principled', null);
+                          handleChange('perseverance', null);
+                          handleChange('believe_god', null);
+                        }}
+                        className="text-[10px] font-bold text-rose-500 hover:text-rose-700 bg-rose-50 dark:bg-rose-950/40 px-2 py-0.5 rounded border border-rose-200 dark:border-rose-900 cursor-pointer"
+                        title="Kosongkan semua nilai Karakter"
+                      >
+                        ✕ Reset Karakter
+                      </button>
+                    )}
+                  </div>
+                  <span className="text-xs font-bold text-indigo-600">
+                    Average: {formData.avg_character !== null && formData.avg_character !== undefined ? Number(formData.avg_character).toFixed(2) : '-'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="font-bold">Integritas</label>
+                      {formData.integrity !== null && formData.integrity !== undefined && (
+                        <button
+                          type="button"
+                          onClick={() => handleChange('integrity', null)}
+                          className="text-[10px] text-rose-500 hover:underline font-bold"
+                        >
+                          ✕ Reset
+                        </button>
+                      )}
+                    </div>
+                    <div className="flex gap-1">
+                      {[1, 2, 3, 4, 5].map((lvl) => {
+                        const isSel = formData.integrity === lvl;
+                        return (
+                          <button
+                            key={lvl}
+                            type="button"
+                            onClick={() => handleChange('integrity', isSel ? null : lvl)}
+                            title={isSel ? 'Klik lagi untuk mengosongkan nilai' : `Pilih nilai ${lvl}`}
+                            className={`flex-1 py-1 rounded-lg font-bold border text-xs cursor-pointer transition-all ${
+                              isSel
+                                ? 'bg-indigo-600 text-white border-indigo-600 ring-2 ring-indigo-500/30 shadow-xs'
+                                : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
+                            }`}
+                          >
+                            {lvl}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="font-bold">Berprinsip</label>
+                      {formData.principled !== null && formData.principled !== undefined && (
+                        <button
+                          type="button"
+                          onClick={() => handleChange('principled', null)}
+                          className="text-[10px] text-rose-500 hover:underline font-bold"
+                        >
+                          ✕ Reset
+                        </button>
+                      )}
+                    </div>
+                    <div className="flex gap-1">
+                      {[1, 2, 3, 4, 5].map((lvl) => {
+                        const isSel = formData.principled === lvl;
+                        return (
+                          <button
+                            key={lvl}
+                            type="button"
+                            onClick={() => handleChange('principled', isSel ? null : lvl)}
+                            title={isSel ? 'Klik lagi untuk mengosongkan nilai' : `Pilih nilai ${lvl}`}
+                            className={`flex-1 py-1 rounded-lg font-bold border text-xs cursor-pointer transition-all ${
+                              isSel
+                                ? 'bg-indigo-600 text-white border-indigo-600 ring-2 ring-indigo-500/30 shadow-xs'
+                                : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
+                            }`}
+                          >
+                            {lvl}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="font-bold">Daya Juang</label>
+                      {formData.perseverance !== null && formData.perseverance !== undefined && (
+                        <button
+                          type="button"
+                          onClick={() => handleChange('perseverance', null)}
+                          className="text-[10px] text-rose-500 hover:underline font-bold"
+                        >
+                          ✕ Reset
+                        </button>
+                      )}
+                    </div>
+                    <div className="flex gap-1">
+                      {[1, 2, 3, 4, 5].map((lvl) => {
+                        const isSel = formData.perseverance === lvl;
+                        return (
+                          <button
+                            key={lvl}
+                            type="button"
+                            onClick={() => handleChange('perseverance', isSel ? null : lvl)}
+                            title={isSel ? 'Klik lagi untuk mengosongkan nilai' : `Pilih nilai ${lvl}`}
+                            className={`flex-1 py-1 rounded-lg font-bold border text-xs cursor-pointer transition-all ${
+                              isSel
+                                ? 'bg-indigo-600 text-white border-indigo-600 ring-2 ring-indigo-500/30 shadow-xs'
+                                : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
+                            }`}
+                          >
+                            {lvl}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="font-bold">Rasa Syukur</label>
+                      {formData.believe_god !== null && formData.believe_god !== undefined && (
+                        <button
+                          type="button"
+                          onClick={() => handleChange('believe_god', null)}
+                          className="text-[10px] text-rose-500 hover:underline font-bold"
+                        >
+                          ✕ Reset
+                        </button>
+                      )}
+                    </div>
+                    <div className="flex gap-1">
+                      {[1, 2, 3, 4, 5].map((lvl) => {
+                        const isSel = formData.believe_god === lvl;
+                        return (
+                          <button
+                            key={lvl}
+                            type="button"
+                            onClick={() => handleChange('believe_god', isSel ? null : lvl)}
+                            title={isSel ? 'Klik lagi untuk mengosongkan nilai' : `Pilih nilai ${lvl}`}
+                            className={`flex-1 py-1 rounded-lg font-bold border text-xs cursor-pointer transition-all ${
+                              isSel
+                                ? 'bg-indigo-600 text-white border-indigo-600 ring-2 ring-indigo-500/30 shadow-xs'
+                                : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
+                            }`}
+                          >
+                            {lvl}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
@@ -1145,7 +1574,7 @@ export const TrialRegistrationModal: React.FC<TrialRegistrationModalProps> = ({
               {/* Rekomendasi Pelatih */}
               <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 space-y-3">
                 <h4 className="font-bold text-xs uppercase tracking-wider text-slate-800 dark:text-slate-200 border-b pb-2">
-                  3. Rekomendasi Pelatih
+                  4. Rekomendasi Program Pelatih
                 </h4>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
@@ -1186,7 +1615,7 @@ export const TrialRegistrationModal: React.FC<TrialRegistrationModalProps> = ({
                   </div>
 
                   <div>
-                    <label className="font-bold block mb-1">D. Rekomendasi Program</label>
+                    <label className="font-bold block mb-1">D. Rekomendasi Program Latihan</label>
                     <select
                       value={formData.rekomendasi_program || ''}
                       onChange={(e) => handleChange('rekomendasi_program', e.target.value)}
@@ -1205,14 +1634,45 @@ export const TrialRegistrationModal: React.FC<TrialRegistrationModalProps> = ({
 
           {/* Form Actions Footer */}
           <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
-            <button
-              type="button"
-              onClick={handleClear}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>Clear Form</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleClear}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Clear Form</span>
+              </button>
+
+              {/* Step Navigation Helpers */}
+              {activeTabSection === 'profil' && (
+                <button
+                  type="button"
+                  onClick={() => setActiveTabSection('riwayat')}
+                  className="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200"
+                >
+                  Lanjut ke Bagian 2 ➔
+                </button>
+              )}
+              {activeTabSection === 'riwayat' && (
+                <button
+                  type="button"
+                  onClick={() => setActiveTabSection('medis')}
+                  className="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200"
+                >
+                  Lanjut ke Bagian 3 (Medis) ➔
+                </button>
+              )}
+              {activeTabSection === 'medis' && (
+                <button
+                  type="button"
+                  onClick={() => setActiveTabSection('asesmen')}
+                  className="px-3 py-1.5 rounded-xl text-xs font-bold bg-sky-50 text-sky-700 dark:bg-sky-950 dark:text-sky-300 hover:bg-sky-100 border border-sky-200 dark:border-sky-800"
+                >
+                  Ke Bagian 4 (Asesmen Fisik) ➔
+                </button>
+              )}
+            </div>
 
             <div className="flex items-center gap-2">
               <button
@@ -1225,10 +1685,18 @@ export const TrialRegistrationModal: React.FC<TrialRegistrationModalProps> = ({
 
               <button
                 type="submit"
-                className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 text-xs font-extrabold shadow-md transition-all active:scale-95 cursor-pointer"
+                className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-extrabold shadow-md transition-all active:scale-95 cursor-pointer ${
+                  activeTabSection === 'asesmen'
+                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/30'
+                    : 'bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900'
+                }`}
               >
-                <Check className="w-4 h-4 text-emerald-400 dark:text-emerald-600" />
-                <span>SUBMIT & SAVE DATA</span>
+                <Check className={`w-4 h-4 ${activeTabSection === 'asesmen' ? 'text-white' : 'text-emerald-400 dark:text-emerald-600'}`} />
+                <span>
+                  {activeTabSection === 'asesmen'
+                    ? 'SIMPAN ASESMEN FISIK & PROGRAM (COACH)'
+                    : 'SIMPAN DATA REGISTRASI TRIAL (ADMIN)'}
+                </span>
               </button>
             </div>
           </div>

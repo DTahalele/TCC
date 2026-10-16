@@ -155,6 +155,25 @@ export const SEED_RECORDS: ScoreCardRecord[] = [
   },
 ];
 
+export function isTestRecord(item: any): boolean {
+  if (!item) return false;
+  const name = String(item.Full_Name || item.fullName || item.full_name || item.Name || item.name || item.nama || item.Nama || '').toUpperCase().trim();
+  const id = String(item.MemberID || item.member_id || item.id || '').toUpperCase().trim();
+  const notes = String(item.notes || '').toUpperCase().trim();
+  return (
+    name.includes('TEST KONEKSI') ||
+    name.includes('TESTING KONEKSI') ||
+    name.includes('TEST KONEKSI WEB APP') ||
+    name.includes('TEST KONEKSI REGISTRASI') ||
+    id === 'TCC-TEST' ||
+    id === 'TCC-TR-TEST' ||
+    id.includes('TEST') ||
+    name.startsWith('TEST ') ||
+    name === 'TEST' ||
+    notes.includes('BARIS INI ADALAH TES OTOMATIS')
+  );
+}
+
 export function getStoredRecords(): ScoreCardRecord[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -164,8 +183,9 @@ export function getStoredRecords(): ScoreCardRecord[] {
     }
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed)) {
-      // Normalize any historical or external records to ensure Full_Name and MemberID are always present
-      return parsed.map((item: any) => ({
+      // Purge any test records and normalize
+      const cleanList = parsed.filter((item: any) => !isTestRecord(item));
+      return cleanList.map((item: any) => ({
         ...item,
         Full_Name:
           (
@@ -249,7 +269,8 @@ export function deleteStoredRecord(id: string): ScoreCardRecord[] {
 
 export function setStoredRecords(records: ScoreCardRecord[]): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+    const clean = records.filter((r) => !isTestRecord(r));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(clean));
   } catch (e) {
     console.error('Failed setting records in localStorage:', e);
   }
