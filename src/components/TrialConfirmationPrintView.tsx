@@ -11,8 +11,6 @@ import {
   Clock,
   MapPin,
   AlertCircle,
-  Phone,
-  Mail,
   Award,
   CheckCircle2,
   User,
@@ -61,8 +59,8 @@ _The Core Chamber Team_`;
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
-      <div className="relative bg-white text-slate-900 w-full max-w-3xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden my-auto">
+    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 overflow-y-auto print:p-0 print:static print:bg-white print:overflow-visible print:block print-container">
+      <div className="relative bg-white text-slate-900 w-full max-w-3xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden my-auto print:border-none print:shadow-none print:max-w-none print:w-full print:rounded-none">
         {/* Floating Screen Controls (Hidden during print) */}
         <div className="sticky top-0 z-20 bg-slate-900 text-white px-5 py-3.5 flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 print:hidden">
           <div className="flex items-center gap-2">

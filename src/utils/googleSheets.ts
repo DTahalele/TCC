@@ -953,6 +953,25 @@ function getWhitelistSheet(ss) {
   return null;
 }
 
+function sanitizePhoneForSheet(val) {
+  if (val === null || val === undefined) return "";
+  var s = String(val).trim();
+  if (!s || s.toLowerCase().indexOf("error") !== -1 || s.indexOf("#") === 0) return "";
+  // Menambahkan tanda petik satu (') di depan jika diawali '+' agar Google Sheets menyimpannya sebagai teks murni dan tidak memicu Formula Parse Error (#ERROR!)
+  if (s.indexOf("+") === 0 || s.indexOf("=") === 0 || s.indexOf("-") === 0) {
+    return "'" + s;
+  }
+  return s;
+}
+
+function cleanPhoneFromSheet(val) {
+  if (val === null || val === undefined) return "";
+  var s = String(val).trim();
+  if (s.indexOf("'") === 0) s = s.substring(1).trim();
+  if (s.toLowerCase().indexOf("error") !== -1 || s.indexOf("#") === 0) return "";
+  return s;
+}
+
 function ensureTrialHeader(sheet) {
   if (!sheet) return;
   if (sheet.getLastRow() === 0) {
@@ -967,6 +986,11 @@ function ensureTrialHeader(sheet) {
       sheet.setFrozenRows(1);
     } catch (e) {}
   }
+  // Format Kolom I (WhatsApp) dan Kolom J (Kontak Darurat) sebagai PLAIN TEXT ('@')
+  // secara otomatis agar nomor WhatsApp tidak dianggap sebagai rumus matematika
+  try {
+    sheet.getRange(2, 9, Math.max(100, sheet.getMaxRows() - 1), 2).setNumberFormat("@");
+  } catch (e) {}
 }
 
 function getTrialSheet(ss) {
@@ -1231,8 +1255,8 @@ function readTrialRecords(ss) {
       DoB: r[5] ? String(r[5]) : '',
       Umur: r[6] ? Number(r[6]) : null,
       Email: String(r[7] || ''),
-      WhatsApp_Number: String(r[8] || ''),
-      Emergency_Contact: String(r[9] || ''),
+      WhatsApp_Number: cleanPhoneFromSheet(r[8]),
+      Emergency_Contact: cleanPhoneFromSheet(r[9]),
       Trial_Date: r[10] ? String(r[10]).split('T')[0] : '',
       Trial_Day: String(r[11] || ''),
       Trial_Time: String(r[12] || ''),
@@ -1520,8 +1544,8 @@ function doPost(e) {
         tData.DoB || "",
         tData.Umur !== undefined ? tData.Umur : "",
         tData.Email || "",
-        tData.WhatsApp_Number || "",
-        tData.Emergency_Contact || "",
+        sanitizePhoneForSheet(tData.WhatsApp_Number),
+        sanitizePhoneForSheet(tData.Emergency_Contact),
         tData.Trial_Date || "",
         tData.Trial_Day || "",
         tData.Trial_Time || "",
@@ -1582,8 +1606,8 @@ function doPost(e) {
           tItem.DoB || "",
           tItem.Umur !== undefined ? tItem.Umur : "",
           tItem.Email || "",
-          tItem.WhatsApp_Number || "",
-          tItem.Emergency_Contact || "",
+          sanitizePhoneForSheet(tItem.WhatsApp_Number),
+          sanitizePhoneForSheet(tItem.Emergency_Contact),
           tItem.Trial_Date || "",
           tItem.Trial_Day || "",
           tItem.Trial_Time || "",
@@ -1684,8 +1708,8 @@ function doPost(e) {
         td.DoB || "1995-05-15",
         td.Umur || 31,
         td.Email || "trial.test@example.com",
-        td.WhatsApp_Number || "+62 812-3456-7890",
-        td.Emergency_Contact || "+62 813-9876-5432",
+        sanitizePhoneForSheet(td.WhatsApp_Number || "+62 812-3456-7890"),
+        sanitizePhoneForSheet(td.Emergency_Contact || "+62 813-9876-5432"),
         td.Trial_Date || getTodayString(),
         td.Trial_Day || "Hari Ini",
         td.Trial_Time || "10:00",

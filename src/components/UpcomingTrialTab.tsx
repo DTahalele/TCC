@@ -10,8 +10,6 @@ import {
   UserPlus,
   Search,
   Filter,
-  Play,
-  Printer,
   Edit3,
   Trash2,
   CheckCircle2,
@@ -596,29 +594,6 @@ export const UpcomingTrialTab: React.FC<UpcomingTrialTabProps> = ({
                             title="Review Seluruh Profil, Catatan Medis & Asesmen Fisik Peserta"
                           >
                             Review
-                          </button>
-
-                          {/* 2. Mulai Sesi Trial (Only if not already member) */}
-                          {t.trial_status !== 'Member TCC' && (
-                            <button
-                              type="button"
-                              onClick={() => onStartTrialSession(t)}
-                              className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition-all shadow-xs cursor-pointer"
-                              title="Mulai Assesmen Fisik Trial (Sesi 1: Strength, Sesi 2: Skills Running Lane, Sesi 3: Evaluasi Sikap & Karakter, Rekomendasi Program)"
-                            >
-                              <Play className="w-3 h-3 fill-white" />
-                              <span className="hidden lg:inline">Mulai Assesmen Fisik</span>
-                            </button>
-                          )}
-
-                          {/* 3. Cetak PDF Konfirmasi & Hasil */}
-                          <button
-                            type="button"
-                            onClick={() => onPrintConfirmation(t)}
-                            className="p-1 rounded-lg text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                            title="Cetak Formulir Konfirmasi Sesi & Hasil Asesmen Lengkap"
-                          >
-                            <Printer className="w-3.5 h-3.5" />
                           </button>
 
                           {/* 4. Edit / Reschedule */}

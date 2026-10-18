@@ -96,7 +96,7 @@ input[type="date"] {
     overflow: hidden !important;
   }
 
-  /* Exclusively display the single customer's printable Score Card */
+  /* Exclusively display the printable Score Card and Trial Confirmation */
   .print-container {
     display: block !important;
     visibility: visible !important;
@@ -107,6 +107,20 @@ input[type="date"] {
     padding: 0 !important;
     background: #ffffff !important;
     color: #000000 !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  .print-container * {
+    visibility: visible !important;
+  }
+
+  .print-container button,
+  .print-container .print\:hidden,
+  .print-container [data-no-print] {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
   }
 
   @page {

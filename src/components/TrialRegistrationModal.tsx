@@ -12,6 +12,7 @@ import {
 } from '../types/trialRegistration';
 import { COACHES_LIST } from '../types/scoreCard';
 import { calculateAge } from '../utils/calculations';
+import { cleanPhoneNumber } from '../utils/trialStorage';
 import {
   X,
   UserPlus,
@@ -111,6 +112,20 @@ export const TrialRegistrationModal: React.FC<TrialRegistrationModalProps> = ({
         updated.Trial_Day = getIndonesianDayName(value);
       }
 
+      // Safeguard against formula error strings in phone fields
+      if (
+        (field === 'WhatsApp_Number' ||
+         field === 'Emergency_Contact' ||
+         field === 'no_whatsapp_ayah' ||
+         field === 'no_whatsapp_ibu' ||
+         field === 'no_whatsapp_wali') &&
+        typeof value === 'string'
+      ) {
+        if (value.toLowerCase().includes('error') || value.startsWith('#')) {
+          (updated as any)[field] = '';
+        }
+      }
+
       // Auto recalculate schedule_status: Confirmed HANYA JIKA Tanggal + Hari + Waktu + Coach terpilih!
       updated.schedule_status = computeScheduleStatus(updated);
 
@@ -188,6 +203,11 @@ export const TrialRegistrationModal: React.FC<TrialRegistrationModalProps> = ({
 
     const finalRecord: TrialRegistrationRecord = {
       ...formData,
+      WhatsApp_Number: cleanPhoneNumber(formData.WhatsApp_Number),
+      Emergency_Contact: cleanPhoneNumber(formData.Emergency_Contact),
+      no_whatsapp_ayah: cleanPhoneNumber(formData.no_whatsapp_ayah),
+      no_whatsapp_ibu: cleanPhoneNumber(formData.no_whatsapp_ibu),
+      no_whatsapp_wali: cleanPhoneNumber(formData.no_whatsapp_wali),
       schedule_status: computeScheduleStatus(formData),
       trial_status: finalTrialStatus,
       updatedAt: new Date().toISOString(),
@@ -308,7 +328,7 @@ export const TrialRegistrationModal: React.FC<TrialRegistrationModalProps> = ({
                   : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
               }`}
             >
-              {isKids ? '3. Data Orang Tua / Wali' : '3. Pekerjaan & Perusahaan'}
+              {isKids ? '3. Data Orang Tua / Wali' : '3. Pekerjaan & Olahraga'}
             </button>
             <button
               type="button"
@@ -543,281 +563,363 @@ export const TrialRegistrationModal: React.FC<TrialRegistrationModalProps> = ({
             </div>
           )}
 
-          {/* SECTION 2: RIWAYAT AKTIVITAS / SEKOLAH / PEKERJAAN */}
-          {activeTabSection === 'riwayat' && (
+          {/* SECTION 2: SEKOLAH & KLUB (KIDS) / KLUB & OLAHRAGA (ADULTS) */}
+          {activeTabSection === 'sekolah' && (
             <div className="space-y-6">
               {isKids ? (
-                /* KHUSUS KIDS: SEKOLAH & ORANG TUA */
-                <div className="space-y-6">
-                  <div>
-                    <h3 className="text-sm font-extrabold uppercase tracking-wide text-slate-900 dark:text-slate-100 border-b pb-2 mb-4 flex items-center gap-2">
-                      <GraduationCap className="w-4 h-4 text-amber-500" />
-                      Data Sekolah & Klub Olahraga Anak
-                    </h3>
+                /* KHUSUS KIDS: SEKOLAH & KLUB OLAHRAGA ANAK */
+                <div>
+                  <h3 className="text-sm font-extrabold uppercase tracking-wide text-slate-900 dark:text-slate-100 border-b pb-2 mb-4 flex items-center gap-2">
+                    <GraduationCap className="w-4 h-4 text-amber-500" />
+                    2. Data Sekolah & Klub Olahraga Anak (Kids)
+                  </h3>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-xs">
-                      <div className="sm:col-span-2 space-y-1">
-                        <label className="font-bold text-slate-700 dark:text-slate-300">Nama Sekolah</label>
-                        <input
-                          type="text"
-                          placeholder="Nama Sekolah Dasar / Menengah"
-                          value={formData.nama_sekolah || ''}
-                          onChange={(e) => handleChange('nama_sekolah', e.target.value)}
-                          className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-semibold"
-                        />
-                      </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-xs">
+                    <div className="sm:col-span-2 space-y-1">
+                      <label className="font-bold text-slate-700 dark:text-slate-300">Nama Sekolah</label>
+                      <input
+                        type="text"
+                        placeholder="Nama Sekolah Dasar / Menengah"
+                        value={formData.nama_sekolah || ''}
+                        onChange={(e) => handleChange('nama_sekolah', e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-semibold"
+                      />
+                    </div>
 
-                      <div className="space-y-1">
-                        <label className="font-bold text-slate-700 dark:text-slate-300">Kelas / Grade</label>
-                        <select
-                          value={formData.kelas_grade || ''}
-                          onChange={(e) => handleChange('kelas_grade', e.target.value)}
-                          className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-semibold"
+                    <div className="space-y-1">
+                      <label className="font-bold text-slate-700 dark:text-slate-300">Kelas / Grade</label>
+                      <select
+                        value={formData.kelas_grade || ''}
+                        onChange={(e) => handleChange('kelas_grade', e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-semibold"
+                      >
+                        <option value="">-- Pilih Grade --</option>
+                        {GRADE_OPTIONS.map((g) => (
+                          <option key={g} value={g}>{g}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="font-bold text-slate-700 dark:text-slate-300">
+                        Pernah Gabung Klub / Komunitas?
+                      </label>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleChange('formakids_tergabung_dalamClub', 'YA')}
+                          className={`flex-1 py-2 rounded-xl text-xs font-bold border ${
+                            formData.formakids_tergabung_dalamClub === 'YA'
+                              ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 border-transparent'
+                              : 'bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700'
+                          }`}
                         >
-                          <option value="">-- Pilih Grade --</option>
-                          {GRADE_OPTIONS.map((g) => (
-                            <option key={g} value={g}>{g}</option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="font-bold text-slate-700 dark:text-slate-300">
-                          Pernah Gabung Klub / Komunitas?
-                        </label>
-                        <div className="flex gap-2">
-                          <button
-                            type="button"
-                            onClick={() => handleChange('formakids_tergabung_dalamClub', 'YA')}
-                            className={`flex-1 py-2 rounded-xl text-xs font-bold border ${
-                              formData.formakids_tergabung_dalamClub === 'YA'
-                                ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 border-transparent'
-                                : 'bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700'
-                            }`}
-                          >
-                            YA
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleChange('formakids_tergabung_dalamClub', 'TIDAK')}
-                            className={`flex-1 py-2 rounded-xl text-xs font-bold border ${
-                              formData.formakids_tergabung_dalamClub === 'TIDAK'
-                                ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 border-transparent'
-                                : 'bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700'
-                            }`}
-                          >
-                            TIDAK
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="font-bold text-slate-700 dark:text-slate-300">Jenis Cabang Olahraga</label>
-                        <input
-                          type="text"
-                          placeholder="misal: Renang, Basket, Sepak Bola"
-                          value={formData.formakids_cabang_olahraga || ''}
-                          onChange={(e) => handleChange('formakids_cabang_olahraga', e.target.value)}
-                          className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-semibold"
-                        />
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="font-bold text-slate-700 dark:text-slate-300">Frekuensi Latihan / Minggu</label>
-                        <select
-                          value={formData.formakids_frek_Latihan || ''}
-                          onChange={(e) => handleChange('formakids_frek_Latihan', e.target.value)}
-                          className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-semibold"
+                          YA
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleChange('formakids_tergabung_dalamClub', 'TIDAK')}
+                          className={`flex-1 py-2 rounded-xl text-xs font-bold border ${
+                            formData.formakids_tergabung_dalamClub === 'TIDAK'
+                              ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 border-transparent'
+                              : 'bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700'
+                          }`}
                         >
-                          <option value="">-- Pilih Frekuensi --</option>
-                          {FREKUENSI_OPTIONS.map((f) => (
-                            <option key={f} value={f}>{f}</option>
-                          ))}
-                        </select>
+                          TIDAK
+                        </button>
                       </div>
                     </div>
-                  </div>
 
-                  {/* DATA ORANG TUA / WALI */}
-                  <div>
-                    <h3 className="text-sm font-extrabold uppercase tracking-wide text-slate-900 dark:text-slate-100 border-b pb-2 mb-4 flex items-center gap-2">
-                      <Users className="w-4 h-4 text-emerald-600" />
-                      Data Orang Tua / Wali
-                    </h3>
+                    <div className="space-y-1">
+                      <label className="font-bold text-slate-700 dark:text-slate-300">Jenis Cabang Olahraga</label>
+                      <input
+                        type="text"
+                        placeholder="misal: Renang, Basket, Sepak Bola"
+                        value={formData.formakids_cabang_olahraga || ''}
+                        onChange={(e) => handleChange('formakids_cabang_olahraga', e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-semibold"
+                      />
+                    </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-xs">
-                      <div className="space-y-1">
-                        <label className="font-bold text-slate-700 dark:text-slate-300">Nama Ayah</label>
-                        <input
-                          type="text"
-                          placeholder="Nama lengkap ayah"
-                          value={formData.nama_ayah || ''}
-                          onChange={(e) => handleChange('nama_ayah', e.target.value)}
-                          className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-semibold"
-                        />
-                      </div>
+                    <div className="space-y-1">
+                      <label className="font-bold text-slate-700 dark:text-slate-300">Frekuensi Latihan / Minggu</label>
+                      <select
+                        value={formData.formakids_frek_Latihan || ''}
+                        onChange={(e) => handleChange('formakids_frek_Latihan', e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-semibold"
+                      >
+                        <option value="">-- Pilih Frekuensi --</option>
+                        {FREKUENSI_OPTIONS.map((f) => (
+                          <option key={f} value={f}>{f}</option>
+                        ))}
+                      </select>
+                    </div>
 
-                      <div className="space-y-1">
-                        <label className="font-bold text-slate-700 dark:text-slate-300">No. WhatsApp Ayah</label>
-                        <input
-                          type="tel"
-                          placeholder="+62 812-xxxx"
-                          value={formData.no_whatsapp_ayah || ''}
-                          onChange={(e) => handleChange('no_whatsapp_ayah', e.target.value)}
-                          className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-semibold"
-                        />
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="font-bold text-slate-700 dark:text-slate-300">Email Orang Tua</label>
-                        <input
-                          type="email"
-                          placeholder="email.ayah.ibu@gmail.com"
-                          value={formData.email_orangTua || ''}
-                          onChange={(e) => handleChange('email_orangTua', e.target.value)}
-                          className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-semibold"
-                        />
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="font-bold text-slate-700 dark:text-slate-300">Nama Ibu</label>
-                        <input
-                          type="text"
-                          placeholder="Nama lengkap ibu"
-                          value={formData.nama_ibu || ''}
-                          onChange={(e) => handleChange('nama_ibu', e.target.value)}
-                          className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-semibold"
-                        />
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="font-bold text-slate-700 dark:text-slate-300">No. WhatsApp Ibu</label>
-                        <input
-                          type="tel"
-                          placeholder="+62 813-xxxx"
-                          value={formData.no_whatsapp_ibu || ''}
-                          onChange={(e) => handleChange('no_whatsapp_ibu', e.target.value)}
-                          className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-semibold"
-                        />
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="font-bold text-slate-700 dark:text-slate-300">Nama Wali (Jika ada)</label>
-                        <input
-                          type="text"
-                          placeholder="Opsional / jika ada wali"
-                          value={formData.nama_wali || ''}
-                          onChange={(e) => handleChange('nama_wali', e.target.value)}
-                          className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-semibold"
-                        />
+                    <div className="space-y-1">
+                      <label className="font-bold text-slate-700 dark:text-slate-300">Aktif Olahraga Saat Ini?</label>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleChange('formakids_aktif_olahraga', 'YA')}
+                          className={`flex-1 py-2 rounded-xl text-xs font-bold border ${
+                            formData.formakids_aktif_olahraga === 'YA'
+                              ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 border-transparent'
+                              : 'bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700'
+                          }`}
+                        >
+                          YA
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleChange('formakids_aktif_olahraga', 'TIDAK')}
+                          className={`flex-1 py-2 rounded-xl text-xs font-bold border ${
+                            formData.formakids_aktif_olahraga === 'TIDAK'
+                              ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 border-transparent'
+                              : 'bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700'
+                          }`}
+                        >
+                          TIDAK
+                        </button>
                       </div>
                     </div>
                   </div>
                 </div>
               ) : (
-                /* KHUSUS ADULTS: PEKERJAAN & KLUB OLAHRAGA */
-                <div className="space-y-6">
-                  <div>
-                    <h3 className="text-sm font-extrabold uppercase tracking-wide text-slate-900 dark:text-slate-100 border-b pb-2 mb-4 flex items-center gap-2">
-                      <Briefcase className="w-4 h-4 text-indigo-500" />
-                      Data Pekerjaan & Kantor
-                    </h3>
+                /* KHUSUS ADULTS: KLUB & OLAHRAGA */
+                <div>
+                  <h3 className="text-sm font-extrabold uppercase tracking-wide text-slate-900 dark:text-slate-100 border-b pb-2 mb-4 flex items-center gap-2">
+                    <Activity className="w-4 h-4 text-emerald-600" />
+                    2. Riwayat Klub & Komunitas Olahraga (Adults)
+                  </h3>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-xs">
-                      <div className="space-y-1">
-                        <label className="font-bold text-slate-700 dark:text-slate-300">Pekerjaan</label>
-                        <input
-                          type="text"
-                          placeholder="contoh: Pegawai Swasta, Dokter, Guru"
-                          value={formData.formadults_pekerjaan || ''}
-                          onChange={(e) => handleChange('formadults_pekerjaan', e.target.value)}
-                          className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-semibold"
-                        />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-xs">
+                    <div className="space-y-1">
+                      <label className="font-bold text-slate-700 dark:text-slate-300">Pernah Tergabung Komunitas / Klub?</label>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleChange('formadults_tergabung_dalamKlub', 'YA')}
+                          className={`flex-1 py-2 rounded-xl text-xs font-bold border ${
+                            formData.formadults_tergabung_dalamKlub === 'YA'
+                              ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 border-transparent'
+                              : 'bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700'
+                          }`}
+                        >
+                          YA
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleChange('formadults_tergabung_dalamKlub', 'TIDAK')}
+                          className={`flex-1 py-2 rounded-xl text-xs font-bold border ${
+                            formData.formadults_tergabung_dalamKlub === 'TIDAK'
+                              ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 border-transparent'
+                              : 'bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700'
+                          }`}
+                        >
+                          TIDAK
+                        </button>
                       </div>
+                    </div>
 
-                      <div className="space-y-1">
-                        <label className="font-bold text-slate-700 dark:text-slate-300">Nama Perusahaan</label>
-                        <input
-                          type="text"
-                          placeholder="Nama instansi / perusahaan"
-                          value={formData.formadults_perusahaan || ''}
-                          onChange={(e) => handleChange('formadults_perusahaan', e.target.value)}
-                          className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-semibold"
-                        />
-                      </div>
+                    <div className="space-y-1">
+                      <label className="font-bold text-slate-700 dark:text-slate-300">Jenis Cabang Olahraga</label>
+                      <input
+                        type="text"
+                        placeholder="misal: Lari, Sepeda, Crossfit, Tennis, Gym"
+                        value={formData.formadults_cabang_olahraga || ''}
+                        onChange={(e) => handleChange('formadults_cabang_olahraga', e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-semibold"
+                      />
+                    </div>
 
-                      <div className="space-y-1">
-                        <label className="font-bold text-slate-700 dark:text-slate-300">Alamat Kantor</label>
-                        <input
-                          type="text"
-                          placeholder="Kota / daerah kantor"
-                          value={formData.formadults_alamatKantor || ''}
-                          onChange={(e) => handleChange('formadults_alamatKantor', e.target.value)}
-                          className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-semibold"
-                        />
+                    <div className="space-y-1">
+                      <label className="font-bold text-slate-700 dark:text-slate-300">Frekuensi Latihan / Minggu</label>
+                      <select
+                        value={formData.formadults_frek_Latihan || ''}
+                        onChange={(e) => handleChange('formadults_frek_Latihan', e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-semibold"
+                      >
+                        <option value="">-- Pilih Frekuensi --</option>
+                        {FREKUENSI_OPTIONS.map((f) => (
+                          <option key={f} value={f}>{f}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="font-bold text-slate-700 dark:text-slate-300">Aktif Olahraga Saat Ini?</label>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleChange('formadults_aktif_olahraga', 'YA')}
+                          className={`flex-1 py-2 rounded-xl text-xs font-bold border ${
+                            formData.formadults_aktif_olahraga === 'YA'
+                              ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 border-transparent'
+                              : 'bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700'
+                          }`}
+                        >
+                          YA
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleChange('formadults_aktif_olahraga', 'TIDAK')}
+                          className={`flex-1 py-2 rounded-xl text-xs font-bold border ${
+                            formData.formadults_aktif_olahraga === 'TIDAK'
+                              ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 border-transparent'
+                              : 'bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700'
+                          }`}
+                        >
+                          TIDAK
+                        </button>
                       </div>
                     </div>
                   </div>
+                </div>
+              )}
+            </div>
+          )}
 
-                  <div>
-                    <h3 className="text-sm font-extrabold uppercase tracking-wide text-slate-900 dark:text-slate-100 border-b pb-2 mb-4 flex items-center gap-2">
-                      <Activity className="w-4 h-4 text-emerald-600" />
-                      Riwayat Club / Komunitas Olahraga
-                    </h3>
+          {/* SECTION 3: DATA ORANG TUA / WALI (KIDS) / PEKERJAAN & OLAHRAGA (ADULTS) */}
+          {activeTabSection === 'orangtua' && (
+            <div className="space-y-6">
+              {isKids ? (
+                /* KHUSUS KIDS: DATA ORANG TUA / WALI */
+                <div>
+                  <h3 className="text-sm font-extrabold uppercase tracking-wide text-slate-900 dark:text-slate-100 border-b pb-2 mb-4 flex items-center gap-2">
+                    <Users className="w-4 h-4 text-emerald-600" />
+                    3. Data Orang Tua / Wali (Kids)
+                  </h3>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-                      <div className="space-y-1">
-                        <label className="font-bold text-slate-700 dark:text-slate-300">Pernah Tergabung Komunitas?</label>
-                        <div className="flex gap-2">
-                          <button
-                            type="button"
-                            onClick={() => handleChange('formadults_tergabung_dalamKlub', 'YA')}
-                            className={`flex-1 py-2 rounded-xl text-xs font-bold border ${
-                              formData.formadults_tergabung_dalamKlub === 'YA'
-                                ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 border-transparent'
-                                : 'bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700'
-                            }`}
-                          >
-                            YA
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleChange('formadults_tergabung_dalamKlub', 'TIDAK')}
-                            className={`flex-1 py-2 rounded-xl text-xs font-bold border ${
-                              formData.formadults_tergabung_dalamKlub === 'TIDAK'
-                                ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 border-transparent'
-                                : 'bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700'
-                            }`}
-                          >
-                            TIDAK
-                          </button>
-                        </div>
-                      </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-xs">
+                    <div className="space-y-1">
+                      <label className="font-bold text-slate-700 dark:text-slate-300">Nama Ayah</label>
+                      <input
+                        type="text"
+                        placeholder="Nama lengkap ayah"
+                        value={formData.nama_ayah || ''}
+                        onChange={(e) => handleChange('nama_ayah', e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-semibold"
+                      />
+                    </div>
 
-                      <div className="space-y-1">
-                        <label className="font-bold text-slate-700 dark:text-slate-300">Jenis Cabang Olahraga</label>
-                        <input
-                          type="text"
-                          placeholder="misal: Lari, Sepeda, Crossfit"
-                          value={formData.formadults_cabang_olahraga || ''}
-                          onChange={(e) => handleChange('formadults_cabang_olahraga', e.target.value)}
-                          className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-semibold"
-                        />
-                      </div>
+                    <div className="space-y-1">
+                      <label className="font-bold text-slate-700 dark:text-slate-300">No. WhatsApp Ayah</label>
+                      <input
+                        type="tel"
+                        placeholder="0812-xxxx atau +62 812-xxxx"
+                        value={formData.no_whatsapp_ayah || ''}
+                        onChange={(e) => handleChange('no_whatsapp_ayah', e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-semibold"
+                      />
+                    </div>
 
-                      <div className="space-y-1">
-                        <label className="font-bold text-slate-700 dark:text-slate-300">Frekuensi Latihan / Minggu</label>
-                        <select
-                          value={formData.formadults_frek_Latihan || ''}
-                          onChange={(e) => handleChange('formadults_frek_Latihan', e.target.value)}
-                          className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-semibold"
-                        >
-                          <option value="">-- Pilih Frekuensi --</option>
-                          {FREKUENSI_OPTIONS.map((f) => (
-                            <option key={f} value={f}>{f}</option>
-                          ))}
-                        </select>
-                      </div>
+                    <div className="space-y-1">
+                      <label className="font-bold text-slate-700 dark:text-slate-300">Email Orang Tua</label>
+                      <input
+                        type="email"
+                        placeholder="email.ayah.ibu@gmail.com"
+                        value={formData.email_orangTua || ''}
+                        onChange={(e) => handleChange('email_orangTua', e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-semibold"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="font-bold text-slate-700 dark:text-slate-300">Nama Ibu</label>
+                      <input
+                        type="text"
+                        placeholder="Nama lengkap ibu"
+                        value={formData.nama_ibu || ''}
+                        onChange={(e) => handleChange('nama_ibu', e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-semibold"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="font-bold text-slate-700 dark:text-slate-300">No. WhatsApp Ibu</label>
+                      <input
+                        type="tel"
+                        placeholder="0813-xxxx atau +62 813-xxxx"
+                        value={formData.no_whatsapp_ibu || ''}
+                        onChange={(e) => handleChange('no_whatsapp_ibu', e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-semibold"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="font-bold text-slate-700 dark:text-slate-300">Nama Wali (Jika ada)</label>
+                      <input
+                        type="text"
+                        placeholder="Opsional / jika ada wali"
+                        value={formData.nama_wali || ''}
+                        onChange={(e) => handleChange('nama_wali', e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-semibold"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="font-bold text-slate-700 dark:text-slate-300">No. WhatsApp Wali</label>
+                      <input
+                        type="tel"
+                        placeholder="Opsional / No WA Wali"
+                        value={formData.no_whatsapp_wali || ''}
+                        onChange={(e) => handleChange('no_whatsapp_wali', e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-semibold"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="font-bold text-slate-700 dark:text-slate-300">Email Wali</label>
+                      <input
+                        type="email"
+                        placeholder="Opsional / email wali"
+                        value={formData.email_wali || ''}
+                        onChange={(e) => handleChange('email_wali', e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-semibold"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* KHUSUS ADULTS: PEKERJAAN & OLAHRAGA (KANTOR) */
+                <div>
+                  <h3 className="text-sm font-extrabold uppercase tracking-wide text-slate-900 dark:text-slate-100 border-b pb-2 mb-4 flex items-center gap-2">
+                    <Briefcase className="w-4 h-4 text-indigo-500" />
+                    3. Data Pekerjaan & Olahraga (Adults)
+                  </h3>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-xs">
+                    <div className="space-y-1">
+                      <label className="font-bold text-slate-700 dark:text-slate-300">Pekerjaan / Profesi</label>
+                      <input
+                        type="text"
+                        placeholder="contoh: Pegawai Swasta, Dokter, Guru, Wiraswasta"
+                        value={formData.formadults_pekerjaan || ''}
+                        onChange={(e) => handleChange('formadults_pekerjaan', e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-semibold"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="font-bold text-slate-700 dark:text-slate-300">Nama Perusahaan / Instansi</label>
+                      <input
+                        type="text"
+                        placeholder="Nama instansi / perusahaan"
+                        value={formData.formadults_perusahaan || ''}
+                        onChange={(e) => handleChange('formadults_perusahaan', e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-semibold"
+                      />
+                    </div>
+
+                    <div className="space-y-1 sm:col-span-2 md:col-span-1">
+                      <label className="font-bold text-slate-700 dark:text-slate-300">Alamat Kantor</label>
+                      <input
+                        type="text"
+                        placeholder="Kota / daerah kantor"
+                        value={formData.formadults_alamatKantor || ''}
+                        onChange={(e) => handleChange('formadults_alamatKantor', e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-semibold"
+                      />
                     </div>
                   </div>
                 </div>
@@ -1648,19 +1750,28 @@ export const TrialRegistrationModal: React.FC<TrialRegistrationModalProps> = ({
               {activeTabSection === 'profil' && (
                 <button
                   type="button"
-                  onClick={() => setActiveTabSection('riwayat')}
+                  onClick={() => setActiveTabSection('sekolah')}
                   className="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200"
                 >
-                  Lanjut ke Bagian 2 ➔
+                  Lanjut ke Bagian 2 ({isKids ? 'Sekolah & Klub' : 'Klub & Olahraga'}) ➔
                 </button>
               )}
-              {activeTabSection === 'riwayat' && (
+              {activeTabSection === 'sekolah' && (
+                <button
+                  type="button"
+                  onClick={() => setActiveTabSection('orangtua')}
+                  className="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200"
+                >
+                  Lanjut ke Bagian 3 ({isKids ? 'Orang Tua' : 'Pekerjaan & Olahraga'}) ➔
+                </button>
+              )}
+              {activeTabSection === 'orangtua' && (
                 <button
                   type="button"
                   onClick={() => setActiveTabSection('medis')}
                   className="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200"
                 >
-                  Lanjut ke Bagian 3 (Medis) ➔
+                  Lanjut ke Bagian 4 (Medis) ➔
                 </button>
               )}
               {activeTabSection === 'medis' && (
@@ -1669,7 +1780,7 @@ export const TrialRegistrationModal: React.FC<TrialRegistrationModalProps> = ({
                   onClick={() => setActiveTabSection('asesmen')}
                   className="px-3 py-1.5 rounded-xl text-xs font-bold bg-sky-50 text-sky-700 dark:bg-sky-950 dark:text-sky-300 hover:bg-sky-100 border border-sky-200 dark:border-sky-800"
                 >
-                  Ke Bagian 4 (Asesmen Fisik) ➔
+                  Ke Bagian 5 (Asesmen Fisik) ➔
                 </button>
               )}
             </div>

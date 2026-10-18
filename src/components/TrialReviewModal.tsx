@@ -61,6 +61,10 @@ export const TrialReviewModal: React.FC<TrialReviewModalProps> = ({
     trial.rekomendasi_program
   );
 
+  const isAssessmentCompleted = Boolean(
+    hasPhysicalAssessment || trial.trial_status === 'Selesai Trial' || trial.trial_status === 'Member TCC'
+  );
+
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
       <div className="relative bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 w-full max-w-3xl rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden my-auto max-h-[92vh] flex flex-col">
@@ -100,29 +104,29 @@ export const TrialReviewModal: React.FC<TrialReviewModalProps> = ({
 
         {/* Modal Scrollable Content */}
         <div className="p-6 space-y-6 overflow-y-auto">
-          {/* Main Action Callout for Coach: Mulai Asesmen Fisik Trial */}
-          <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="space-y-1 text-center sm:text-left">
-              <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300 uppercase tracking-wide flex items-center justify-center sm:justify-start gap-1.5">
-                <CheckCircle className="w-4 h-4 text-emerald-600" />
-                {trial.trial_status === 'Selesai Trial' ? 'Hasil Asesmen Fisik Tersimpan' : 'Asesmen Fisik Khusus Peserta Trial'}
-              </span>
-              <p className="text-xs text-emerald-700 dark:text-emerald-400">
-                {trial.trial_status === 'Selesai Trial'
-                  ? 'Asesmen fisik dan rekomendasi program telah dilengkapi oleh pelatih. Anda dapat meninjau atau memperbarui nilainya.'
-                  : 'Klik tombol di samping untuk langsung mengisi <strong>Bagian 4 (Asesmen Fisik & Rekomendasi Program)</strong> khusus calon member trial ini.'}
-              </p>
-            </div>
+          {/* Main Action Callout for Coach: Mulai Asesmen Fisik Trial (Hanya ditampilkan jika BELUM selesai asesmen fisik) */}
+          {!isAssessmentCompleted && (
+            <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="space-y-1 text-center sm:text-left">
+                <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300 uppercase tracking-wide flex items-center justify-center sm:justify-start gap-1.5">
+                  <Play className="w-4 h-4 text-emerald-600 fill-emerald-600" />
+                  Asesmen Fisik Khusus Peserta Trial
+                </span>
+                <p className="text-xs text-emerald-700 dark:text-emerald-400">
+                  Calon member ini belum melengkapi proses asesmen fisik. Klik tombol di samping untuk langsung memulai penilaian fisik & rekomendasi program latihan.
+                </p>
+              </div>
 
-            <button
-              type="button"
-              onClick={() => onStartTrialSession(trial)}
-              className="w-full sm:w-auto shrink-0 flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-extrabold text-sm shadow-md shadow-emerald-600/30 transition-all cursor-pointer"
-            >
-              <Play className="w-4 h-4 fill-white" />
-              <span>{trial.trial_status === 'Selesai Trial' ? 'Buka / Edit Asesmen' : 'Mulai Asesmen Fisik'}</span>
-            </button>
-          </div>
+              <button
+                type="button"
+                onClick={() => onStartTrialSession(trial)}
+                className="w-full sm:w-auto shrink-0 flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-extrabold text-sm shadow-md shadow-emerald-600/30 transition-all cursor-pointer"
+              >
+                <Play className="w-4 h-4 fill-white" />
+                <span>Mulai Asesmen Fisik</span>
+              </button>
+            </div>
+          )}
 
           {/* Sesi & Jadwal Info */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -336,11 +340,11 @@ export const TrialReviewModal: React.FC<TrialReviewModalProps> = ({
                 </h4>
               </div>
               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                hasPhysicalAssessment
+                isAssessmentCompleted
                   ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
                   : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
               }`}>
-                {hasPhysicalAssessment ? '✓ Selesai Dinilai' : 'Menunggu Sesi Coach'}
+                {isAssessmentCompleted ? '✓ Selesai Dinilai' : 'Menunggu Sesi Coach'}
               </span>
             </div>
 
@@ -525,6 +529,16 @@ export const TrialReviewModal: React.FC<TrialReviewModalProps> = ({
                   </div>
                 </div>
               </div>
+            ) : isAssessmentCompleted ? (
+              <div className="p-4 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-xs text-emerald-900 dark:text-emerald-300">
+                <p className="font-bold mb-0.5 flex items-center gap-1.5">
+                  <CheckCircle className="w-4 h-4 text-emerald-600" />
+                  Asesmen Fisik Sesi Trial Telah Selesai
+                </p>
+                <p className="text-[11px] text-emerald-800/80 dark:text-emerald-400">
+                  Seluruh tahapan trial peserta ini telah selesai diverifikasi oleh tim coach. Tidak diperlukan pengambilan data asesmen fisik ulang.
+                </p>
+              </div>
             ) : (
               <div className="p-4 rounded-xl bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 text-xs text-amber-900 dark:text-amber-300 flex flex-col sm:flex-row items-center justify-between gap-3">
                 <div>
@@ -536,9 +550,10 @@ export const TrialReviewModal: React.FC<TrialReviewModalProps> = ({
                 <button
                   type="button"
                   onClick={() => onStartTrialSession(trial)}
-                  className="shrink-0 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs cursor-pointer shadow-xs"
+                  className="shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs cursor-pointer shadow-xs"
                 >
-                  Isi Asesmen Sekarang
+                  <Play className="w-3.5 h-3.5 fill-white" />
+                  <span>Mulai Asesmen Fisik</span>
                 </button>
               </div>
             )}
