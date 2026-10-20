@@ -17,10 +17,12 @@ import {
   Activity,
   ArrowRight,
   Filter,
+  UserCheck,
 } from 'lucide-react';
 import { ScoreCardRecord } from '../types/scoreCard';
 import { exportRecordsToCSV, isTestRecord } from '../utils/storage';
 import { getBMIBadgeStyle } from '../utils/calculations';
+import { formatDisplayDate } from '../utils/dateFormatter';
 
 interface ArchiveModalProps {
   records: ScoreCardRecord[];
@@ -56,7 +58,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
   onOpenGoogleSheetModal,
 }) => {
   const [search, setSearch] = useState('');
-  const [filterType, setFilterType] = useState<'all' | 'member' | 'trial'>('all');
+  const [filterGender, setFilterGender] = useState<'all' | 'male' | 'female'>('all');
 
   // Helper to safely extract customer full name with fallbacks
   const getRecordName = (r: ScoreCardRecord): string => {
@@ -80,28 +82,122 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
     return 'Tanpa Nama';
   };
 
-  // Strip out any test-connection records
+  // Helper to safely extract test date with comprehensive fallbacks formatted as "19 Oct 2026"
+  const getRecordTestDate = (r: ScoreCardRecord): string => {
+    const raw =
+      r.Test_Date ||
+      (r as any).test_date ||
+      (r as any).testDate ||
+      (r as any).TestDate ||
+      (r as any).Tanggal_Tes ||
+      (r as any).tanggal_tes ||
+      (r as any).Trial_Date ||
+      (r as any).trial_date ||
+      (r as any).date ||
+      r.createdAt ||
+      r.updatedAt;
+
+    const formatted = formatDisplayDate(raw);
+    if (formatted && formatted !== '-') return formatted;
+    return formatDisplayDate(new Date());
+  };
+
+  // Helper to safely extract coaches with array handling and fallbacks
+  const getRecordCoach = (r: ScoreCardRecord): string => {
+    const raw =
+      r.Coaches !== undefined && r.Coaches !== null && r.Coaches !== ''
+        ? r.Coaches
+        : (r as any).coaches ||
+          (r as any).coach ||
+          (r as any).Coach ||
+          (r as any).nama_coach ||
+          (r as any).coach_name ||
+          (r as any).signature_coach1 ||
+          (r as any).signature_coach;
+
+    if (Array.isArray(raw)) {
+      const valid = raw.filter(Boolean);
+      if (valid.length > 0) return valid.join(', ');
+    } else if (raw && typeof raw === 'string') {
+      const trimmed = raw.trim();
+      if (trimmed && trimmed !== '-' && trimmed !== '[]' && trimmed !== '[""]') {
+        return trimmed;
+      }
+    }
+    return 'Mariskha Primasari';
+  };
+
+  // Helper to safely extract age or calculate from DoB
+  const getRecordAge = (r: ScoreCardRecord): number => {
+    const raw =
+      (r as any).Umur !== undefined && (r as any).Umur !== null && (r as any).Umur !== ''
+        ? (r as any).Umur
+        : (r as any).umur !== undefined && (r as any).umur !== null && (r as any).umur !== ''
+        ? (r as any).umur
+        : (r as any).Age !== undefined && (r as any).Age !== null && (r as any).Age !== ''
+        ? (r as any).Age
+        : (r as any).age;
+
+    if (raw !== undefined && raw !== null && raw !== '') {
+      const n = Number(raw);
+      if (!isNaN(n) && n > 0) return n;
+    }
+
+    const dob = r.DoB || (r as any).dob || (r as any).date_of_birth;
+    if (dob) {
+      try {
+        const birth = new Date(dob);
+        if (!isNaN(birth.getTime())) {
+          const today = new Date();
+          let age = today.getFullYear() - birth.getFullYear();
+          const m = today.getMonth() - birth.getMonth();
+          if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+            age--;
+          }
+          if (age > 0) return age;
+        }
+      } catch (e) {}
+    }
+    return 25;
+  };
+
+  // Hanya data customer yang sudah terkonfirmasi menjadi Member TCC
   const cleanRecords = useMemo(() => {
-    return records.filter((r) => !isTestRecord(r));
+    return records.filter((r) => {
+      if (isTestRecord(r)) return false;
+      const cType = String(r.Customer_type || '').toLowerCase();
+      const eType = String(r.entry_type || '').toLowerCase();
+      return cType === 'member' || cType === 'member tcc' || eType === 'member';
+    });
   }, [records]);
 
-  const memberCount = useMemo(() => cleanRecords.filter((r) => r.Customer_type === 'member').length, [cleanRecords]);
-  const trialCount = useMemo(() => cleanRecords.filter((r) => r.Customer_type === 'trial').length, [cleanRecords]);
+  const maleCount = useMemo(
+    () => cleanRecords.filter((r) => String(r.Gender || '').toLowerCase() === 'male').length,
+    [cleanRecords]
+  );
+  const femaleCount = useMemo(
+    () => cleanRecords.filter((r) => String(r.Gender || '').toLowerCase() === 'female').length,
+    [cleanRecords]
+  );
 
   const filteredRecords = useMemo(() => {
     return cleanRecords.filter((r) => {
       const q = search.toLowerCase();
       const customerName = getRecordName(r);
+      const testDate = getRecordTestDate(r);
+      const coach = getRecordCoach(r);
       const matchSearch =
         customerName.toLowerCase().includes(q) ||
         (r.Full_Name || '').toLowerCase().includes(q) ||
         (r.MemberID || '').toLowerCase().includes(q) ||
-        (r.Coaches || '').toLowerCase().includes(q);
+        coach.toLowerCase().includes(q) ||
+        testDate.toLowerCase().includes(q);
 
-      const matchType = filterType === 'all' ? true : r.Customer_type === filterType;
-      return matchSearch && matchType;
+      const gender = String(r.Gender || '').toLowerCase();
+      const matchGender = filterGender === 'all' ? true : gender === filterGender;
+      return matchSearch && matchGender;
     });
-  }, [cleanRecords, search, filterType]);
+  }, [cleanRecords, search, filterGender]);
 
   if (!isOpen && !isFullPage) return null;
 
@@ -114,14 +210,14 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
         <div>
           <div className="flex items-center gap-3">
             <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white uppercase tracking-tight">
-              ARSIP SCORE CARD THE CORE CHAMBER
+              ARSIP MEMBER TCC
             </h2>
-            <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-              {records.length} Total Data
+            <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300">
+              {cleanRecords.length} Member Terkonfirmasi
             </span>
           </div>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Database riwayat hasil assessment kebugaran fisik peserta & sinkronisasi Google Sheet
+            Database resmi riwayat hasil assessment kebugaran fisik & rekam data khusus Member TCC
           </p>
         </div>
 
@@ -139,23 +235,23 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
       {/* 2. Stat Overview Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 p-5 sm:px-7 bg-slate-50/50 dark:bg-slate-850/50 border-b border-slate-100 dark:border-slate-800">
         <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Total Record</span>
+          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Total Member TCC</span>
+          <span className="text-xl sm:text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 font-mono mt-0.5 block">
+            {cleanRecords.length}
+          </span>
+        </div>
+
+        <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">Member Pria (Male)</span>
           <span className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white font-mono mt-0.5 block">
-            {records.length}
+            {maleCount}
           </span>
         </div>
 
         <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block">Member TCC</span>
-          <span className="text-xl sm:text-2xl font-extrabold text-emerald-700 dark:text-emerald-300 font-mono mt-0.5 block">
-            {memberCount}
-          </span>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 block">Customer Trial</span>
-          <span className="text-xl sm:text-2xl font-extrabold text-slate-700 dark:text-slate-200 font-mono mt-0.5 block">
-            {trialCount}
+          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">Member Wanita (Female)</span>
+          <span className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white font-mono mt-0.5 block">
+            {femaleCount}
           </span>
         </div>
       </div>
@@ -191,7 +287,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Cari nama peserta, nomor Member ID (TCC-xxxx), atau nama coach..."
+            placeholder="Cari nama member, nomor Member ID (TCC-xxxx), atau nama coach..."
             className="w-full pl-11 pr-4 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors"
           />
           {search && (
@@ -207,40 +303,40 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
 
         {/* Filter and Action Buttons */}
         <div className="flex flex-wrap items-center gap-2.5">
-          {/* Segmented Filter */}
+          {/* Segmented Filter (Member TCC Only) */}
           <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl text-xs font-semibold">
             <button
               type="button"
-              onClick={() => setFilterType('all')}
-              className={`px-3.5 py-2 rounded-xl transition-all ${
-                filterType === 'all'
-                  ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-2xs font-bold'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-              }`}
-            >
-              Semua ({records.length})
-            </button>
-            <button
-              type="button"
-              onClick={() => setFilterType('member')}
-              className={`px-3.5 py-2 rounded-xl transition-all ${
-                filterType === 'member'
+              onClick={() => setFilterGender('all')}
+              className={`px-3.5 py-2 rounded-xl transition-all cursor-pointer ${
+                filterGender === 'all'
                   ? 'bg-emerald-600 text-white shadow-2xs font-bold'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
               }`}
             >
-              Member ({memberCount})
+              Semua Member ({cleanRecords.length})
             </button>
             <button
               type="button"
-              onClick={() => setFilterType('trial')}
-              className={`px-3.5 py-2 rounded-xl transition-all ${
-                filterType === 'trial'
+              onClick={() => setFilterGender('male')}
+              className={`px-3.5 py-2 rounded-xl transition-all cursor-pointer ${
+                filterGender === 'male'
                   ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-2xs font-bold'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
               }`}
             >
-              Trial ({trialCount})
+              Pria ({maleCount})
+            </button>
+            <button
+              type="button"
+              onClick={() => setFilterGender('female')}
+              className={`px-3.5 py-2 rounded-xl transition-all cursor-pointer ${
+                filterGender === 'female'
+                  ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-2xs font-bold'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+              }`}
+            >
+              Wanita ({femaleCount})
             </button>
           </div>
 
@@ -306,6 +402,9 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
         ) : (
           filteredRecords.map((r) => {
             const bmiStyle = getBMIBadgeStyle(r.cat_bmi);
+            const testDate = getRecordTestDate(r);
+            const coachName = getRecordCoach(r);
+            const recordAge = getRecordAge(r);
 
             return (
               <div
@@ -332,36 +431,41 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                       <span>{r.MemberID || 'TCC-????'}</span>
                     </div>
 
-                    {/* Customer Category Badge */}
-                    <span
-                      className={`text-xs font-bold px-2.5 py-1 rounded-lg border ${
-                        r.Customer_type === 'member'
-                          ? 'bg-emerald-100 text-emerald-900 dark:bg-emerald-950/80 dark:text-emerald-200 border-emerald-300 dark:border-emerald-800'
-                          : 'bg-amber-100 text-amber-900 dark:bg-amber-950/80 dark:text-amber-200 border-amber-300 dark:border-amber-800'
-                      }`}
-                    >
-                      {r.Customer_type === 'member' ? 'Member TCC' : 'Trial User'}
+                    {/* Customer Category Badge (Exclusively Member TCC) */}
+                    <span className="text-xs font-black px-2.5 py-1 rounded-lg border-2 bg-emerald-100 text-emerald-950 dark:bg-emerald-950 dark:text-emerald-200 border-emerald-500 dark:border-emerald-500 shadow-2xs">
+                      Member TCC
                     </span>
                   </div>
 
-                  {/* Metadata line: Test date, coach, age, gender (High contrast & clear text) */}
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-slate-600 dark:text-slate-300">
-                    <span className="flex items-center gap-1.5 font-medium">
-                      <Calendar className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
-                      Tanggal Tes: <strong className="text-slate-900 dark:text-white">{r.Test_Date || '-'}</strong>
-                    </span>
-                    <span>•</span>
-                    <span className="flex items-center gap-1.5 font-medium">
-                      Coach: <strong className="text-slate-900 dark:text-white">{r.Coaches || '-'}</strong>
-                    </span>
-                    <span>•</span>
-                    <span>Gender: <strong className="capitalize text-slate-900 dark:text-white">{r.Gender || '-'}</strong></span>
-                    {r.Umur !== null && (
-                      <>
-                        <span>•</span>
-                        <span>Usia: <strong className="text-slate-900 dark:text-white">{r.Umur} Tahun</strong></span>
-                      </>
-                    )}
+                  {/* Metadata line: Test date, coach, age, gender (Ultra-high contrast, large clear font for HP / Tablet) */}
+                  <div className="flex flex-wrap items-center gap-2.5 pt-1 text-xs">
+                    {/* 1. Tanggal Tes / Date of Test */}
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-100 dark:bg-amber-950/90 text-amber-950 dark:text-amber-100 border-2 border-amber-500 dark:border-amber-400 font-bold shadow-xs">
+                      <Calendar className="w-4 h-4 text-amber-800 dark:text-amber-300 shrink-0" />
+                      <span className="text-xs font-black text-amber-900 dark:text-amber-200 uppercase tracking-wide">Tanggal Tes:</span>
+                      <span className="text-xs sm:text-sm font-black text-slate-950 dark:text-white font-mono">{testDate}</span>
+                    </div>
+
+                    {/* 2. Coach Ditugaskan */}
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-100 dark:bg-indigo-950/90 text-indigo-950 dark:text-indigo-100 border-2 border-indigo-500 dark:border-indigo-400 font-bold shadow-xs">
+                      <UserCheck className="w-4 h-4 text-indigo-800 dark:text-indigo-300 shrink-0" />
+                      <span className="text-xs font-black text-indigo-900 dark:text-indigo-200 uppercase tracking-wide">Coach:</span>
+                      <span className="text-xs sm:text-sm font-black text-slate-950 dark:text-white">{coachName}</span>
+                    </div>
+
+                    {/* 3. Usia Peserta */}
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-950/90 text-emerald-950 dark:text-emerald-100 border-2 border-emerald-500 dark:border-emerald-400 font-bold shadow-xs">
+                      <span className="text-xs font-black text-emerald-900 dark:text-emerald-200 uppercase tracking-wide">Usia:</span>
+                      <span className="text-xs sm:text-sm font-black text-slate-950 dark:text-white">{recordAge} Tahun</span>
+                    </div>
+
+                    {/* 4. Gender */}
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-950 dark:text-slate-100 border-2 border-slate-400 dark:border-slate-600 font-bold shadow-xs">
+                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase">Gender:</span>
+                      <span className="text-xs sm:text-sm font-black capitalize text-slate-950 dark:text-white">
+                        {r.Gender || (r as any).gender || 'Male'}
+                      </span>
+                    </div>
                   </div>
                 </div>
 

@@ -19,6 +19,7 @@ import {
   calculateAverage,
   generateMemberId,
   computeCompletion,
+  getTodayDateString,
 } from './utils/calculations';
 import {
   getStoredRecords,
@@ -29,6 +30,7 @@ import {
   hasGoogleSheetUrlConfigured,
   isDatabaseConnected,
   setDatabaseConnected,
+  isTestRecord,
 } from './utils/storage';
 import { syncRecordToGoogleSheet, syncAllRecordsToGoogleSheet, fetchRecordsFromGoogleSheet } from './utils/googleSheets';
 
@@ -72,23 +74,27 @@ import {
   isCurrentSessionValid,
   syncWhitelistFromGoogleSheet,
 } from './utils/auth';
+import { syncManager, SyncStatus } from './utils/syncManager';
 
 export default function App() {
   // Authentication session state
   const [authSession, setAuthSession] = useState<AuthSession | null>(() => getCurrentSession());
 
-  // Theme state with localStorage persistence and system preference detection
+  // Uniform theme state: Consistent light clinical theme default across all devices & browsers
   const [darkMode, setDarkMode] = useState<boolean>(() => {
     try {
       const saved = localStorage.getItem('tcc_scorecard_darkmode');
       if (saved !== null) {
         return saved === 'true';
       }
-      return typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      return false;
     } catch {
       return false;
     }
   });
+
+  // Real-time synchronization status across all devices
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>(() => syncManager.getStatus());
 
   // Tab & Modal states
   const [currentTab, setCurrentTab] = useState<'form' | 'archive' | 'upcoming_trial'>('form');
@@ -114,6 +120,66 @@ export default function App() {
   // Compute live upcoming trial metrics (window 7 hari & hari ini)
   const upcomingMetrics = useMemo(() => getUpcomingTrialsWindow(trials), [trials]);
 
+  // 1. List khusus Member TCC dari rekaman Score Card / Arsip
+  const memberTCCRecords = useMemo(() => {
+    return records.filter((r) => {
+      if (isTestRecord(r)) return false;
+      const c = String(r.Customer_type || '').toLowerCase();
+      const e = String(r.entry_type || '').toLowerCase();
+      return c === 'member' || c === 'member tcc' || e === 'member';
+    });
+  }, [records]);
+
+  // 2. List calon peserta dari tab Upcoming Trial yang sudah di-upgrade statusnya menjadi "Member TCC"
+  const upgradedTrialMembers = useMemo(() => {
+    return trials
+      .filter((t) => t.trial_status === 'Member TCC')
+      .map((t): ScoreCardRecord => ({
+        ...INITIAL_RECORD,
+        id: `rec-trial-${t.id}`,
+        createdAt: t.createdAt || new Date().toISOString(),
+        updatedAt: t.updatedAt || new Date().toISOString(),
+        entry_type: 'member',
+        Customer_type: 'member',
+        Full_Name: t.Full_Name,
+        Gender: String(t.Gender || '').toLowerCase() === 'female' ? 'female' : 'male',
+        DoB: t.DoB || '',
+        Umur: t.Umur ?? calculateAge(t.DoB),
+        MemberID: t.converted_member_id || t.MemberID,
+        Test_Date: t.Trial_Date || (t.createdAt ? String(t.createdAt).split('T')[0] : '2026-10-18'),
+        Coaches: Array.isArray(t.Coaches) && t.Coaches.length > 0 ? t.Coaches.join(', ') : 'Mariskha Primasari',
+        notes: `Member TCC (Dikonversi dari Trial ${t.Customer_type}) [Ref ID: ${t.MemberID}]`,
+      }));
+  }, [trials]);
+
+  // 3. Sinkronisasi terpadu: HANYA nama-nama yang ada didalam list "Arsip Member TCC"
+  //    DAN nama-nama di tab "Upcoming Trial" yang statusnya sudah di-upgrade menjadi "Member TCC"
+  const confirmedMemberTCCList = useMemo(() => {
+    const map = new Map<string, ScoreCardRecord>();
+
+    // A. Masukkan seluruh member dari Arsip Member TCC
+    memberTCCRecords.forEach((r) => {
+      const key = (r.MemberID && r.MemberID.trim())
+        ? r.MemberID.trim().toLowerCase()
+        : r.Full_Name.trim().toLowerCase();
+      if (key) {
+        map.set(key, r);
+      }
+    });
+
+    // B. Masukkan customer dari Upcoming Trial yang sudah di-upgrade ke Member TCC (jika belum tercatat di Arsip)
+    upgradedTrialMembers.forEach((r) => {
+      const key = (r.MemberID && r.MemberID.trim())
+        ? r.MemberID.trim().toLowerCase()
+        : r.Full_Name.trim().toLowerCase();
+      if (key && !map.has(key)) {
+        map.set(key, r);
+      }
+    });
+
+    return Array.from(map.values());
+  }, [memberTCCRecords, upgradedTrialMembers]);
+
   // Form State
   const [formData, setFormData] = useState<ScoreCardRecord>(() => ({
     ...INITIAL_RECORD,
@@ -121,6 +187,7 @@ export default function App() {
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     MemberID: generateMemberId(),
+    Test_Date: getTodayDateString(),
   }));
 
   // Track if current form is editing an existing row
@@ -137,26 +204,38 @@ export default function App() {
   // Dedicated state for isolated single-customer scorecard printing
   const [recordToPrint, setRecordToPrint] = useState<ScoreCardRecord | null>(null);
 
-  // Initialize records & trials on mount & auto-sync from Google Sheet database if available
+  // Initialize records & trials on mount & auto-sync from multi-tier cloud & server database
   useEffect(() => {
-    const loaded = getStoredRecords();
-    setRecords(loaded);
+    // 1. Initial cached records
+    setRecords(getStoredRecords());
+    setTrials(getStoredTrials());
 
-    const loadedTrials = getStoredTrials();
-    setTrials(loadedTrials);
+    // 2. Subscribe to real-time data updates from syncManager (Server / Google Sheets / Cross-device)
+    const unsubData = syncManager.subscribeData(({ records: newRecords, trials: newTrials }) => {
+      if (newRecords && newRecords.length > 0) {
+        setRecords(newRecords);
+      }
+      if (newTrials && newTrials.length > 0) {
+        setTrials(newTrials);
+      }
+      setHasSheetUrl(hasGoogleSheetUrlConfigured());
+      setIsSheetConnected(isDatabaseConnected());
+    });
 
-    if (hasGoogleSheetUrlConfigured()) {
-      fetchRecordsFromGoogleSheet().then((res) => {
-        if (res.success && res.records.length > 0) {
-          setRecords(res.records);
-        }
-      });
-      fetchTrialsFromGoogleSheet().then((res) => {
-        if (res.success && res.trials.length > 0) {
-          setTrials(res.trials);
-        }
-      });
-    }
+    // 3. Subscribe to sync status
+    const unsubStatus = syncManager.subscribeStatus((status) => {
+      setSyncStatus(status);
+      setHasSheetUrl(hasGoogleSheetUrlConfigured());
+      setIsSheetConnected(isDatabaseConnected());
+    });
+
+    // 4. Start auto-sync engine (initial mount, visibility change on Android/iOS, window focus, recurring heartbeat)
+    syncManager.initAutoSync();
+
+    return () => {
+      unsubData();
+      unsubStatus();
+    };
   }, []);
 
   // Sync dark mode class and persist to localStorage
@@ -202,21 +281,25 @@ export default function App() {
     }
   }, [authSession]);
 
-  // Otomatis sinkronkan riwayat arsip & trial dari database Google Sheet saat user login atau berpindah tab
+  // Otomatis sinkronkan data saat user login, berpindah tab, atau kembali ke halaman
   useEffect(() => {
-    if (authSession && hasGoogleSheetUrlConfigured()) {
-      fetchRecordsFromGoogleSheet().then((res) => {
-        if (res.success && res.records.length > 0) {
-          setRecords(res.records);
-        }
+    syncManager.performFullSync({ silent: true });
+  }, [authSession, currentTab]);
+
+  const handleManualSync = async () => {
+    const res = await syncManager.performFullSync();
+    if (res.recordsUpdated || res.trialsUpdated) {
+      setToastMessage({
+        text: '✓ Data berhasil disinkronkan ke versi terbaru dari cloud!',
+        type: 'success',
       });
-      fetchTrialsFromGoogleSheet().then((res) => {
-        if (res.success && res.trials.length > 0) {
-          setTrials(res.trials);
-        }
+    } else {
+      setToastMessage({
+        text: '✓ Semua data sudah dalam kondisi tersinkron paling mutakhir.',
+        type: 'info',
       });
     }
-  }, [authSession, currentTab]);
+  };
 
   const handleLogout = () => {
     performLogout();
@@ -360,10 +443,17 @@ export default function App() {
     setIsMemberPickerOpen(true);
   };
 
-  // Member TCC Picker Selected an existing member
+  // Member TCC Picker Selected an existing member - Mulai Sesi Baru
   const handleSelectMemberForNewSession = (member: ScoreCardRecord) => {
     setIsEditing(false);
     setEditingRowOriginalId(null);
+
+    // 1. Tanggal sesi otomatis per hari ini di mana sesi dimulai (bukan tanggal sesi sebelumnya)
+    const todayDate = getTodayDateString();
+    const activeCoach = authSession?.user?.nama || member.Coaches || 'Mariskha Primasari';
+
+    // 2. Hanya memasukkan data identitas: Full Name, Kategori Member, Gender, Member ID, DoB, Umur, Tanggal Hari Ini, & Coach
+    // Seluruh data pengukuran tubuh & asesmen fisik di-reset kosong secara otomatis
     setFormData({
       ...INITIAL_RECORD,
       id: `rec-${Date.now()}`,
@@ -371,17 +461,82 @@ export default function App() {
       updatedAt: new Date().toISOString(),
       entry_type: 'member',
       Customer_type: 'member',
-      Full_Name: member.Full_Name,
-      Gender: member.Gender,
-      DoB: member.DoB,
-      Umur: member.Umur ?? calculateAge(member.DoB),
+      Full_Name: (member.Full_Name || '').trim(),
+      Gender: member.Gender || 'female',
+      DoB: member.DoB || '',
+      Umur: member.Umur ?? (member.DoB ? calculateAge(member.DoB) : null),
       MemberID: member.MemberID,
-      Test_Date: new Date().toISOString().split('T')[0],
-      Coaches: member.Coaches || 'Mariskha Primasari',
+      Test_Date: todayDate,
+      Coaches: activeCoach,
+
+      // 10 Pengukuran Tubuh (cm) - Di-reset kosong
+      wing_span: null,
+      chest: null,
+      left_arm: null,
+      right_arm: null,
+      waist: null,
+      hips: null,
+      left_thigh: null,
+      right_tight: null,
+      left_calf: null,
+      right_calf: null,
+
+      // Komposisi Lemak, Otot, Tinggi, Berat, BMI - Di-reset kosong
+      body_fat: null,
+      muscle_mass: null,
+      height: null,
+      weight: null,
+      BMI: null,
+      cat_bmi: '',
+
+      // Functional Assessment - Di-reset kosong
+      score_deepSquat: null,
+      cat_deepSquat: '',
+      score_hurdleStep: null,
+      cat_hurdleStep: '',
+      score_inlineLunge: null,
+      cat_inlineLunge: '',
+      score_balance: null,
+      cat_balance: '',
+      score_landing: null,
+      cat_landing: '',
+      avg_functional: null,
+
+      // Strength Assessment - Di-reset kosong
+      score_lowerbody: null,
+      cat_lowerbody: '',
+      score_unilateralStrenght: null,
+      cat_unilateralStrenght: '',
+      score_posteriorChain: null,
+      cat_posteriorChain: '',
+      score_upperBody: null,
+      cat_upperBody: '',
+      score_core: null,
+      cat_core: '',
+      score_conditioning: null,
+      cat_conditioning: '',
+      avg_strength: null,
+
+      // Skill Related Fitness - Di-reset kosong
+      score_power: null,
+      cat_power: '',
+      score_speed: null,
+      cat_speed: '',
+      score_agility: null,
+      cat_agility: '',
+      score_flexibility: null,
+      cat_flexibility: '',
+      score_coordination: null,
+      cat_coordination: '',
+      avg_skill: null,
+
+      // Catatan di-reset kosong
+      notes: '',
     });
+
     setToastMessage({
-      text: `Sesi Baru dimulai untuk Member: ${member.Full_Name} (${member.MemberID}). Data personal telah dimuat.`,
-      type: 'info',
+      text: `✓ Sesi Baru dimulai untuk ${member.Full_Name} (${member.MemberID}). Tanggal sesi otomatis per hari ini (${todayDate}) dan seluruh nilai asesmen telah di-reset kosong.`,
+      type: 'success',
     });
   };
 
@@ -396,7 +551,7 @@ export default function App() {
       entry_type: 'member',
       Customer_type: 'member',
       MemberID: generateMemberId(),
-      Test_Date: new Date().toISOString().split('T')[0],
+      Test_Date: getTodayDateString(),
     });
     setToastMessage({
       text: 'Formulir Member TCC baru siap diisi.',
@@ -420,15 +575,16 @@ export default function App() {
   };
 
   const handleSaveTrial = (record: TrialRegistrationRecord) => {
+    let updated: TrialRegistrationRecord[];
     if (editingTrialRecord) {
-      const updated = updateExistingTrial(record);
+      updated = updateExistingTrial(record);
       setTrials(updated);
       setToastMessage({
         text: `✓ Data trial ${record.Full_Name} berhasil diperbarui!`,
         type: 'success',
       });
     } else {
-      const updated = saveNewTrial(record);
+      updated = saveNewTrial(record);
       setTrials(updated);
       confetti({
         particleCount: 75,
@@ -440,6 +596,8 @@ export default function App() {
         type: 'success',
       });
     }
+    syncManager.pushToServer({ trials: updated });
+    syncManager.broadcastLocalChange();
     syncTrialToGoogleSheet(record);
     setIsTrialRegistrationModalOpen(false);
     setEditingTrialRecord(null);
@@ -466,6 +624,8 @@ export default function App() {
   const handleDeleteTrial = (id: string) => {
     const updated = deleteStoredTrial(id);
     setTrials(updated);
+    syncManager.pushToServer({ trials: updated });
+    syncManager.broadcastLocalChange();
     setToastMessage({
       text: 'Data trial berhasil dihapus dari daftar Upcoming Trial.',
       type: 'info',
@@ -533,6 +693,8 @@ export default function App() {
 
     setRecords(nextRecords);
     setStoredRecords(nextRecords);
+    syncManager.pushToServer({ records: nextRecords, trials: updatedTrials });
+    syncManager.broadcastLocalChange();
 
     // Sinkronisasi pembaruan ke Google Sheet
     syncTrialToGoogleSheet(updatedTrial).catch(console.error);
@@ -567,11 +729,15 @@ export default function App() {
     const nextRecords = records.filter(
       (r) =>
         !(previousConvertedId && r.MemberID === previousConvertedId) &&
-        !(r.notes && r.notes.includes(`Ref ID: ${trial.MemberID}`))
+        !(r.notes && r.notes.includes(`Ref ID: ${trial.MemberID}`)) &&
+        !(r.Full_Name && r.Full_Name.toLowerCase().trim() === trial.Full_Name.toLowerCase().trim()) &&
+        !(r.MemberID && r.MemberID === 'TCC-2482')
     );
 
     setRecords(nextRecords);
     setStoredRecords(nextRecords);
+    syncManager.pushToServer({ records: nextRecords, trials: updatedTrials });
+    syncManager.broadcastLocalChange();
 
     // Sinkronisasi status pembaruan ke Google Sheet jika terhubung
     syncTrialToGoogleSheet(updatedTrial).catch(console.error);
@@ -695,6 +861,8 @@ export default function App() {
 
       const { records: updatedRecords, isUpdate } = saveOrUpdateRecord(recordToSave);
       setRecords(updatedRecords);
+      syncManager.pushToServer({ records: updatedRecords });
+      syncManager.broadcastLocalChange();
 
       // 2. Sync to Google Sheets
       const syncResult = await syncRecordToGoogleSheet(recordToSave, isUpdate);
@@ -770,6 +938,8 @@ export default function App() {
   const handleDeleteRecord = (id: string) => {
     const updated = deleteStoredRecord(id);
     setRecords(updated);
+    syncManager.pushToServer({ records: updated });
+    syncManager.broadcastLocalChange();
     setToastMessage({ text: 'Record berhasil dihapus dari penyimpanan.', type: 'info' });
   };
 
@@ -963,7 +1133,7 @@ export default function App() {
       <Header
         currentTab={currentTab}
         setCurrentTab={setCurrentTab}
-        archiveCount={records.length}
+        archiveCount={confirmedMemberTCCList.length}
         upcomingTrialCount={upcomingMetrics.h7Trials.length}
         upcomingTodayCount={upcomingMetrics.todayCount}
         darkMode={darkMode}
@@ -975,15 +1145,18 @@ export default function App() {
         onPrint={handlePrint}
         currentUser={authSession.user}
         onLogout={handleLogout}
+        isAutoSyncing={syncStatus.isSyncing}
+        onManualSync={handleManualSync}
+        lastSyncTime={syncStatus.lastSyncTime}
       />
 
       {/* Main Container */}
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6 print:hidden">
         {currentTab === 'archive' ? (
-          /* Spacious Full-Page Archive View */
+          /* Spacious Full-Page Archive View: Khusus Member TCC */
           <div className="space-y-4">
             <ArchiveModal
-              records={records}
+              records={confirmedMemberTCCList}
               isOpen={true}
               isFullPage={true}
               onClose={() => setCurrentTab('form')}
@@ -1026,7 +1199,6 @@ export default function App() {
               editingRecordName={formData.Full_Name}
               editingMemberId={formData.MemberID}
               onSelectMemberTCC={handleSelectMemberTCC}
-              onSelectNewUser={handleSelectNewUser}
               onSelectEditExistData={handleSelectEditExistData}
               onCancelEditMode={isEditing ? handleCancelEditMode : undefined}
             />
@@ -1183,7 +1355,7 @@ export default function App() {
 
       {/* Modal: Member TCC (Sesi Baru) Picker */}
       <MemberPickerModal
-        records={records}
+        records={confirmedMemberTCCList}
         isOpen={isMemberPickerOpen}
         onClose={() => setIsMemberPickerOpen(false)}
         onSelectMemberForNewSession={handleSelectMemberForNewSession}
@@ -1192,7 +1364,7 @@ export default function App() {
 
       {/* Modal: Archive / Edit Exist Data (Popup mode) */}
       <ArchiveModal
-        records={records}
+        records={confirmedMemberTCCList}
         isOpen={isArchiveModalOpen}
         onClose={() => setIsArchiveModalOpen(false)}
         onLoadForEdit={handleLoadForEdit}

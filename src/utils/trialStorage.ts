@@ -304,7 +304,7 @@ function getInitialSeedTrials(): TrialRegistrationRecord[] {
       Trial_Day: getIndonesianDayName(in2DaysStr),
       Coaches: ['Mariskha Primasari'],
       schedule_status: 'Confirmed',
-      trial_status: 'Member TCC',
+      trial_status: 'Selesai Trial',
       formadults_tergabung_dalamKlub: 'YA',
       formadults_cabang_olahraga: 'Pilates & Gym',
       formadults_aktif_olahraga: 'YA',
@@ -443,12 +443,9 @@ export function getStoredTrials(): TrialRegistrationRecord[] {
       // Ensure seed-1 (Bima Satria Perkasa) and seed-2 (Kenzo Alfarizqi) always have 100% full assessment data
       const customItems = nonTestItems.filter((p: any) => !p.id.startsWith('trial-seed-'));
       
-      // Always enforce pristine complete dummy data for trial-seed-1 and trial-seed-2
+      // Ensure seed trials preserve user modifications when present
       const merged = [
         ...initialSeeds.map((seed) => {
-          if (seed.id === 'trial-seed-1' || seed.id === 'trial-seed-2' || seed.id === 'trial-seed-5' || seed.id === 'trial-seed-6') {
-            return seed;
-          }
           const existing = nonTestItems.find((p: any) => p.id === seed.id || p.MemberID === seed.MemberID);
           if (!existing) {
             return seed;

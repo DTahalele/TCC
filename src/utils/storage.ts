@@ -82,6 +82,72 @@ export const SEED_RECORDS: ScoreCardRecord[] = [
     notes: 'Member assessment awal kuartal ke-4. Keseimbangan dan core sangat baik.',
   },
   {
+    id: 'rec-seed-004',
+    createdAt: '2026-10-12T08:30:00.000Z',
+    updatedAt: '2026-10-12T08:30:00.000Z',
+    entry_type: 'member',
+    Customer_type: 'member',
+    Full_Name: 'Clarissa Wijaya',
+    Gender: 'female',
+    DoB: '1999-03-14',
+    Umur: 27,
+    MemberID: 'TCC-2483',
+    Test_Date: '2026-10-12',
+    Coaches: 'Ayu Salsa Bella',
+    wing_span: 165,
+    chest: 85,
+    left_arm: 26,
+    right_arm: 26,
+    waist: 66,
+    hips: 89,
+    left_thigh: 48,
+    right_tight: 48,
+    left_calf: 32,
+    right_calf: 32,
+    body_fat: 18.2,
+    muscle_mass: 34.8,
+    height: 162,
+    weight: 52,
+    BMI: 19.8,
+    cat_bmi: 'Normal Weight',
+    score_deepSquat: 3,
+    cat_deepSquat: 'Good (baik)',
+    score_hurdleStep: 3,
+    cat_hurdleStep: 'Good (baik)',
+    score_inlineLunge: 3,
+    cat_inlineLunge: 'Good (baik)',
+    score_balance: 4,
+    cat_balance: 'Great (baik sekali)',
+    score_landing: 3,
+    cat_landing: 'Good (baik)',
+    avg_functional: 3.2,
+    score_lowerbody: 3,
+    cat_lowerbody: 'Good (baik)',
+    score_unilateralStrenght: 3,
+    cat_unilateralStrenght: 'Good (baik)',
+    score_posteriorChain: 3,
+    cat_posteriorChain: 'Good (baik)',
+    score_upperBody: 3,
+    cat_upperBody: 'Good (baik)',
+    score_core: 4,
+    cat_core: 'Great (baik sekali)',
+    score_conditioning: 3,
+    cat_conditioning: 'Good (baik)',
+    avg_strength: 3.17,
+    score_power: 3,
+    cat_power: 'Good (baik)',
+    score_speed: 3,
+    cat_speed: 'Good (baik)',
+    score_agility: 3,
+    cat_agility: 'Good (baik)',
+    score_flexibility: 4,
+    cat_flexibility: 'Great (baik sekali)',
+    score_coordination: 3,
+    cat_coordination: 'Good (baik)',
+    avg_skill: 3.2,
+    notes: 'Member TCC Aktif. Fokus program: peningkatan power dan conditioning.',
+  },
+  {
     id: 'rec-seed-002',
     createdAt: '2026-10-08T09:30:00.000Z',
     updatedAt: '2026-10-08T09:30:00.000Z',
@@ -185,26 +251,94 @@ export function getStoredRecords(): ScoreCardRecord[] {
     if (Array.isArray(parsed)) {
       // Purge any test records and normalize
       const cleanList = parsed.filter((item: any) => !isTestRecord(item));
-      return cleanList.map((item: any) => ({
-        ...item,
-        Full_Name:
-          (
-            item.Full_Name ||
-            item.fullName ||
-            item.full_name ||
-            item.Name ||
-            item.name ||
-            item.nama ||
-            item.Nama ||
-            item.member_name ||
-            item.memberName ||
-            item.customer_name ||
-            item.customerName ||
-            (item.MemberID ? `Member ${item.MemberID}` : 'Nama Belum Diisi')
-          ).toString().trim() || (item.MemberID ? `Member ${item.MemberID}` : 'Nama Belum Diisi'),
-        MemberID: item.MemberID || item.memberId || item.member_id || item.Member_Id || '',
-        Customer_type: item.Customer_type || item.customer_type || item.customerType || 'member',
-      }));
+      const normalizedList = cleanList.map((item: any) => {
+        const rawDate =
+          item.Test_Date ||
+          item.test_date ||
+          item.testDate ||
+          item.TestDate ||
+          item.Tanggal_Tes ||
+          item.Trial_Date ||
+          (item.createdAt ? String(item.createdAt).split('T')[0] : '2026-10-18');
+
+        let coachesVal =
+          item.Coaches !== undefined && item.Coaches !== null && item.Coaches !== ''
+            ? item.Coaches
+            : item.coaches || item.coach || item.Coach || item.nama_coach || item.signature_coach1 || 'Mariskha Primasari';
+        if (Array.isArray(coachesVal)) {
+          coachesVal = coachesVal.filter(Boolean).join(', ');
+        }
+        if (!coachesVal || !String(coachesVal).trim() || coachesVal === '-' || coachesVal === '[]') {
+          coachesVal = 'Mariskha Primasari';
+        }
+
+        let ageVal =
+          item.Umur !== null && item.Umur !== undefined && item.Umur !== ''
+            ? Number(item.Umur)
+            : item.umur !== null && item.umur !== undefined && item.umur !== ''
+            ? Number(item.umur)
+            : item.Age !== null && item.Age !== undefined && item.Age !== ''
+            ? Number(item.Age)
+            : item.age !== null && item.age !== undefined && item.age !== ''
+            ? Number(item.age)
+            : null;
+
+        if ((ageVal === null || isNaN(ageVal) || ageVal <= 0) && (item.DoB || item.dob)) {
+          try {
+            const b = new Date(item.DoB || item.dob);
+            if (!isNaN(b.getTime())) {
+              const now = new Date();
+              let a = now.getFullYear() - b.getFullYear();
+              const m = now.getMonth() - b.getMonth();
+              if (m < 0 || (m === 0 && now.getDate() < b.getDate())) a--;
+              if (a > 0) ageVal = a;
+            }
+          } catch (e) {}
+        }
+        if (ageVal === null || isNaN(ageVal) || ageVal <= 0) {
+          ageVal = 25;
+        }
+
+        return {
+          ...item,
+          Full_Name:
+            (
+              item.Full_Name ||
+              item.fullName ||
+              item.full_name ||
+              item.Name ||
+              item.name ||
+              item.nama ||
+              item.Nama ||
+              item.member_name ||
+              item.memberName ||
+              item.customer_name ||
+              item.customerName ||
+              (item.MemberID ? `Member ${item.MemberID}` : 'Nama Belum Diisi')
+            ).toString().trim() || (item.MemberID ? `Member ${item.MemberID}` : 'Nama Belum Diisi'),
+          MemberID: item.MemberID || item.memberId || item.member_id || item.Member_Id || '',
+          Customer_type: item.Customer_type || item.customer_type || item.customerType || 'member',
+          Test_Date: String(rawDate || '2026-10-18').trim(),
+          Coaches: String(coachesVal || 'Mariskha Primasari').trim(),
+          Umur: ageVal,
+        };
+      });
+
+      // Ensure that verified Member TCC seeds exist so Arsip Member TCC is never empty
+      for (const seed of SEED_RECORDS) {
+        if (seed.Customer_type === 'member') {
+          const exists = normalizedList.some(
+            (r: ScoreCardRecord) =>
+              (r.MemberID && r.MemberID === seed.MemberID) ||
+              (r.Full_Name && r.Full_Name.toLowerCase() === seed.Full_Name.toLowerCase())
+          );
+          if (!exists) {
+            normalizedList.push(seed);
+          }
+        }
+      }
+
+      return normalizedList;
     }
     return SEED_RECORDS;
   } catch (e) {

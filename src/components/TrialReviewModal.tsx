@@ -1,5 +1,6 @@
 import React from 'react';
 import { TrialRegistrationRecord } from '../types/trialRegistration';
+import { formatDisplayDate } from '../utils/dateFormatter';
 import {
   Play,
   Printer,
@@ -88,7 +89,7 @@ export const TrialReviewModal: React.FC<TrialReviewModalProps> = ({
                 </span>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Dokumen ID: <span className="font-mono font-semibold">{trial.MemberID}</span> · Disimpan pada {new Date(trial.createdAt).toLocaleDateString('id-ID')}
+                Dokumen ID: <span className="font-mono font-semibold">{trial.MemberID}</span> · Disimpan pada {formatDisplayDate(trial.createdAt)}
               </p>
             </div>
           </div>
@@ -136,7 +137,7 @@ export const TrialReviewModal: React.FC<TrialReviewModalProps> = ({
               </span>
               <div className="flex items-center gap-2 font-bold text-sm">
                 <Calendar className="w-4 h-4 text-rose-500" />
-                <span>{trial.Trial_Day || '-'}, {trial.Trial_Date || 'Belum Dijadwalkan'}</span>
+                <span>{trial.Trial_Day || '-'}, {trial.Trial_Date ? formatDisplayDate(trial.Trial_Date) : 'Belum Dijadwalkan'}</span>
               </div>
             </div>
 
@@ -244,7 +245,7 @@ export const TrialReviewModal: React.FC<TrialReviewModalProps> = ({
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-500">Tanggal Lahir:</span>
-                  <span>{trial.DoB || '-'}</span>
+                  <span>{formatDisplayDate(trial.DoB)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-500">WhatsApp:</span>

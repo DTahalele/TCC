@@ -13,6 +13,7 @@ import {
 import { COACHES_LIST } from '../types/scoreCard';
 import { calculateAge } from '../utils/calculations';
 import { cleanPhoneNumber } from '../utils/trialStorage';
+import { formatDisplayDate } from '../utils/dateFormatter';
 import {
   X,
   UserPlus,
@@ -197,9 +198,15 @@ export const TrialRegistrationModal: React.FC<TrialRegistrationModalProps> = ({
       formData.rekomendasi_program
     );
 
-    const finalTrialStatus = hasAssessmentData && formData.trial_status === 'Menunggu Trial'
-      ? 'Selesai Trial'
-      : formData.trial_status;
+    const finalScheduleStatus = computeScheduleStatus(formData);
+    const finalTrialStatus =
+      formData.trial_status === 'Member TCC'
+        ? 'Member TCC'
+        : finalScheduleStatus === 'Pending'
+        ? 'Menunggu Trial'
+        : hasAssessmentData
+        ? 'Selesai Trial'
+        : formData.trial_status;
 
     const finalRecord: TrialRegistrationRecord = {
       ...formData,
@@ -208,7 +215,7 @@ export const TrialRegistrationModal: React.FC<TrialRegistrationModalProps> = ({
       no_whatsapp_ayah: cleanPhoneNumber(formData.no_whatsapp_ayah),
       no_whatsapp_ibu: cleanPhoneNumber(formData.no_whatsapp_ibu),
       no_whatsapp_wali: cleanPhoneNumber(formData.no_whatsapp_wali),
-      schedule_status: computeScheduleStatus(formData),
+      schedule_status: finalScheduleStatus,
       trial_status: finalTrialStatus,
       updatedAt: new Date().toISOString(),
     };
@@ -413,8 +420,13 @@ export const TrialRegistrationModal: React.FC<TrialRegistrationModalProps> = ({
 
                   {/* Date of Birth */}
                   <div className="space-y-1">
-                    <label className="font-bold text-slate-700 dark:text-slate-300">
-                      Tanggal Lahir (DoB)
+                    <label className="font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                      <span>Tanggal Lahir (DoB)</span>
+                      {formData.DoB && (
+                        <span className="text-[11px] font-extrabold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
+                          {formatDisplayDate(formData.DoB)}
+                        </span>
+                      )}
                     </label>
                     <input
                       type="date"
@@ -500,7 +512,14 @@ export const TrialRegistrationModal: React.FC<TrialRegistrationModalProps> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
                   {/* Tanggal Sesi */}
                   <div className="space-y-1">
-                    <label className="font-bold text-slate-700 dark:text-slate-300">Tanggal Sesi</label>
+                    <label className="font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                      <span>Tanggal Sesi</span>
+                      {formData.Trial_Date && (
+                        <span className="text-[11px] font-extrabold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
+                          {formatDisplayDate(formData.Trial_Date)}
+                        </span>
+                      )}
+                    </label>
                     <input
                       type="date"
                       value={formData.Trial_Date}

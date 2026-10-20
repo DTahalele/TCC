@@ -4,6 +4,7 @@ import {
   TrialCustomerType,
 } from '../types/trialRegistration';
 import { isTestTrialRecord } from '../utils/trialStorage';
+import { formatDisplayDate } from '../utils/dateFormatter';
 import {
   Calendar,
   Clock,
@@ -405,17 +406,17 @@ export const UpcomingTrialTab: React.FC<UpcomingTrialTabProps> = ({
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-extrabold uppercase text-[10px] tracking-wider">
-                <th className="py-3 px-4">Calon Member & ID</th>
-                <th className="py-3 px-3">Tipe</th>
-                <th className="py-3 px-3">Jadwal Sesi & Urgensi</th>
-                <th className="py-3 px-3">Coach Bertugas</th>
-                <th className="py-3 px-3">Kondisi Medis / Cedera</th>
-                <th className="py-3 px-3">Status</th>
-                <th className="py-3 px-4 text-right">Aksi Operasional</th>
+              <tr className="bg-slate-100/90 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-extrabold uppercase text-[10px] tracking-wider">
+                <th className="py-3 px-3.5 border-r border-slate-200 dark:border-slate-700">Calon Member & ID</th>
+                <th className="py-3 px-3 border-r border-slate-200 dark:border-slate-700">Tipe</th>
+                <th className="py-3 px-3 border-r border-slate-200 dark:border-slate-700">Jadwal Sesi & Urgensi</th>
+                <th className="py-3 px-3 border-r border-slate-200 dark:border-slate-700">Coach Bertugas</th>
+                <th className="py-3 px-3 border-r border-slate-200 dark:border-slate-700">Kondisi Medis / Cedera</th>
+                <th className="py-3 px-3 border-r border-slate-200 dark:border-slate-700">Status</th>
+                <th className="py-3 px-3.5 text-right">Aksi Operasional</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-sans">
+            <tbody className="divide-y divide-slate-200 dark:divide-slate-800 font-sans">
               {filteredTrials.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-12 text-center text-slate-400 dark:text-slate-500">
@@ -439,12 +440,14 @@ export const UpcomingTrialTab: React.FC<UpcomingTrialTabProps> = ({
                   return (
                     <tr
                       key={t.id}
-                      className={`hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors ${
-                        isToday ? 'bg-rose-50/40 dark:bg-rose-950/20' : ''
+                      className={`border-b border-slate-200 dark:border-slate-800 transition-colors ${
+                        isToday
+                          ? 'bg-rose-50/60 dark:bg-rose-950/25 hover:bg-rose-100/60 dark:hover:bg-rose-900/30'
+                          : 'even:bg-slate-50/50 dark:even:bg-slate-850/40 hover:bg-slate-100/70 dark:hover:bg-slate-800/60'
                       }`}
                     >
                       {/* Name & ID */}
-                      <td className="py-3.5 px-4">
+                      <td className="py-3 px-3.5 border-r border-slate-200 dark:border-slate-800">
                         <div className="font-bold text-sm text-slate-900 dark:text-slate-100">
                           {t.Full_Name}
                         </div>
@@ -458,7 +461,7 @@ export const UpcomingTrialTab: React.FC<UpcomingTrialTabProps> = ({
                       </td>
 
                       {/* Type: Kids vs Adults */}
-                      <td className="py-3.5 px-3">
+                      <td className="py-3 px-3 border-r border-slate-200 dark:border-slate-800">
                         <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${
                           t.Customer_type === 'Trial Kids'
                             ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
@@ -479,11 +482,11 @@ export const UpcomingTrialTab: React.FC<UpcomingTrialTabProps> = ({
                       </td>
 
                       {/* Schedule & Urgency */}
-                      <td className="py-3.5 px-3">
+                      <td className="py-3 px-3 border-r border-slate-200 dark:border-slate-800">
                         {t.schedule_status === 'Confirmed' && t.Trial_Date ? (
                           <div>
                             <div className="font-bold text-slate-800 dark:text-slate-200">
-                              {t.Trial_Day}, {t.Trial_Date}
+                              {t.Trial_Day}, {formatDisplayDate(t.Trial_Date)}
                             </div>
                             <div className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5">
                               <Clock className="w-3 h-3 text-emerald-500" />
@@ -513,7 +516,7 @@ export const UpcomingTrialTab: React.FC<UpcomingTrialTabProps> = ({
                       </td>
 
                       {/* Coaches */}
-                      <td className="py-3.5 px-3">
+                      <td className="py-3 px-3 border-r border-slate-200 dark:border-slate-800">
                         {t.Coaches && t.Coaches.length > 0 ? (
                           <div className="font-semibold text-slate-800 dark:text-slate-200 max-w-[140px] truncate" title={t.Coaches.join(', ')}>
                             {t.Coaches.join(', ')}
@@ -526,7 +529,7 @@ export const UpcomingTrialTab: React.FC<UpcomingTrialTabProps> = ({
                       </td>
 
                       {/* Medical Check */}
-                      <td className="py-3.5 px-3">
+                      <td className="py-3 px-3 border-r border-slate-200 dark:border-slate-800">
                         {hasMedicalWarning ? (
                           <div
                             onClick={() => onReviewTrial(t)}
@@ -544,7 +547,7 @@ export const UpcomingTrialTab: React.FC<UpcomingTrialTabProps> = ({
                       </td>
 
                       {/* Status: Penjadwalan & Sesi */}
-                      <td className="py-3.5 px-3">
+                      <td className="py-3 px-3 border-r border-slate-200 dark:border-slate-800">
                         <div>
                           {t.schedule_status === 'Confirmed' ? (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
@@ -571,6 +574,10 @@ export const UpcomingTrialTab: React.FC<UpcomingTrialTabProps> = ({
                                 </span>
                               )}
                             </div>
+                          ) : (t.schedule_status === 'Pending' || !t.Trial_Date) ? (
+                            <span className="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                              Menunggu Jadwal
+                            </span>
                           ) : t.trial_status === 'Selesai Trial' ? (
                             <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300">
                               Selesai Asesmen
@@ -584,7 +591,7 @@ export const UpcomingTrialTab: React.FC<UpcomingTrialTabProps> = ({
                       </td>
 
                       {/* Actions */}
-                      <td className="py-3.5 px-4 text-right">
+                      <td className="py-3 px-3.5 text-right">
                         <div className="flex items-center justify-end gap-1.5">
                           {/* 1. Review Medis & Profil */}
                           <button

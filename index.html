@@ -24,7 +24,7 @@
       (function() {
         try {
           var saved = localStorage.getItem('tcc_scorecard_darkmode');
-          if (saved === 'true' || (saved === null && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+          if (saved === 'true') {
             document.documentElement.classList.add('dark');
           } else {
             document.documentElement.classList.remove('dark');

@@ -7,9 +7,11 @@ import {
   Settings,
   LogOut,
   CalendarCheck,
-  MoreVertical,
   ShieldCheck,
   UserCheck,
+  RefreshCw,
+  Cloud,
+  MoreVertical,
 } from 'lucide-react';
 import { TCCLogo } from './TCCLogo';
 import { WhitelistUser } from '../types/auth';
@@ -29,6 +31,9 @@ interface HeaderProps {
   onToggleConnection?: () => void;
   currentUser?: WhitelistUser | null;
   onLogout?: () => void;
+  isAutoSyncing?: boolean;
+  onManualSync?: () => void;
+  lastSyncTime?: Date | null;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -42,6 +47,9 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenGoogleSheetModal,
   currentUser,
   onLogout,
+  isAutoSyncing = false,
+  onManualSync,
+  lastSyncTime,
 }) => {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -121,7 +129,7 @@ export const Header: React.FC<HeaderProps> = ({
             }`}
           >
             <Database className="w-3.5 h-3.5" />
-            <span>Arsip</span>
+            <span>Arsip Member TCC</span>
             <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200">
               {archiveCount}
             </span>
@@ -214,6 +222,34 @@ export const Header: React.FC<HeaderProps> = ({
 
                 {/* 2. Menu Action Items */}
                 <div className="space-y-1">
+                  {/* Status Sinkronisasi Real-Time */}
+                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 text-xs space-y-1.5 mb-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Sinkronisasi Cloud</span>
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        Aktif Otomatis
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                      Semua data tersinkron otomatis antar Android, iOS & Browser saat buka aplikasi.
+                    </p>
+                    {onManualSync && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onManualSync();
+                          setIsMenuOpen(false);
+                        }}
+                        disabled={isAutoSyncing}
+                        className="w-full mt-1 py-1 px-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                      >
+                        <RefreshCw className={`w-3 h-3 ${isAutoSyncing ? 'animate-spin' : ''}`} />
+                        <span>{isAutoSyncing ? 'Sedang Menyinkronkan...' : 'Sinkronkan Sekarang'}</span>
+                      </button>
+                    )}
+                  </div>
+
                   {/* Pengaturan Database (Ikon Gear) */}
                   <button
                     type="button"

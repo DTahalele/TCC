@@ -1,6 +1,7 @@
 import React from 'react';
 import { User, Calendar, Shield, RefreshCw, Check } from 'lucide-react';
 import { CustomerType, Gender, COACHES_LIST } from '../types/scoreCard';
+import { formatDisplayDate } from '../utils/dateFormatter';
 
 interface PersonalDataSectionProps {
   customerType: CustomerType;
@@ -215,9 +216,16 @@ export const PersonalDataSection: React.FC<PersonalDataSectionProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* DoB */}
         <div className="space-y-1.5">
-          <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-            <span>Date of Birth</span>
-            {dob && <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">✓</span>}
+          <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+            <span className="flex items-center gap-1.5">
+              <span>Date of Birth</span>
+              {dob && <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">✓</span>}
+            </span>
+            {dob && (
+              <span className="text-[11px] font-extrabold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
+                {formatDisplayDate(dob)}
+              </span>
+            )}
           </label>
           <div className="relative">
             <input
@@ -262,9 +270,16 @@ export const PersonalDataSection: React.FC<PersonalDataSectionProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Date of Test */}
         <div className="space-y-1.5">
-          <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-            <span>Date of Test</span>
-            {testDate && <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">✓</span>}
+          <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+            <span className="flex items-center gap-1.5">
+              <span>Date of Test</span>
+              {testDate && <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">✓</span>}
+            </span>
+            {testDate && (
+              <span className="text-[11px] font-extrabold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
+                {formatDisplayDate(testDate)}
+              </span>
+            )}
           </label>
           <input
             type="date"

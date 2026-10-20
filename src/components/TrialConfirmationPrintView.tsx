@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { TrialRegistrationRecord } from '../types/trialRegistration';
 import { TCCLogo } from './TCCLogo';
 import { PrintFooter } from './PrintFooter';
+import { formatDisplayDate } from '../utils/dateFormatter';
 import {
   Printer,
   X,
@@ -40,7 +41,7 @@ Halo Kak *${trial.Full_Name || '-'}*,
 Terima kasih telah mengikuti sesi Trial di The Core Chamber! Berikut kami lampirkan hasil initial assessment sesi trial Anda:
 
 📌 *ID Peserta:* ${trial.MemberID}
-📅 *Hari, Tanggal:* ${trial.Trial_Day || '-'}, ${trial.Trial_Date || '-'}
+📅 *Hari, Tanggal:* ${trial.Trial_Day || '-'}, ${trial.Trial_Date ? formatDisplayDate(trial.Trial_Date) : '-'}
 ⏰ *Waktu/Jam:* ${timeStr}
 👥 *Kategori:* ${trial.Customer_type}
 🏋️ *Coach Bertugas:* ${coachNames}
@@ -114,7 +115,7 @@ _The Core Chamber Team_`;
                   TRIAL SESSION CONFIRMATION & REGISTRATION RECORD
                 </p>
                 <p className="text-[10px] text-slate-500">
-                  Document ID: {trial.MemberID} · Generated on {new Date().toLocaleDateString('id-ID')}
+                  Document ID: {trial.MemberID} · Generated on {formatDisplayDate(new Date())}
                 </p>
               </div>
             </div>
@@ -139,7 +140,7 @@ _The Core Chamber Team_`;
               <div className="bg-white p-3 rounded-lg border border-slate-200">
                 <span className="block text-[10px] font-bold text-slate-500 uppercase">Hari & Tanggal</span>
                 <span className="font-extrabold text-sm text-slate-900">
-                  {trial.Trial_Day || '-'}, {trial.Trial_Date || 'Belum Ditentukan'}
+                  {trial.Trial_Day || '-'}, {trial.Trial_Date ? formatDisplayDate(trial.Trial_Date) : 'Belum Ditentukan'}
                 </span>
               </div>
 

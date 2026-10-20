@@ -18,6 +18,17 @@ export function calculateAge(dobString: string): number | null {
 }
 
 /**
+ * Get current local date in YYYY-MM-DD format (prevents UTC timezone off-by-one errors)
+ */
+export function getTodayDateString(): string {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/**
  * Calculate BMI in kg/m²
  */
 export function calculateBMI(heightCm: number | null, weightKg: number | null): number | null {

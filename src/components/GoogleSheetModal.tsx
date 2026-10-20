@@ -18,6 +18,7 @@ import {
   Wifi,
 } from 'lucide-react';
 import { getGoogleSheetUrl, setGoogleSheetUrl, verifyAdminPassword, setAdminPassword } from '../utils/storage';
+import { syncManager } from '../utils/syncManager';
 import {
   GOOGLE_APPS_SCRIPT_TEMPLATE,
   sendTestRowToGoogleSheet,
@@ -112,6 +113,7 @@ export const GoogleSheetModal: React.FC<GoogleSheetModalProps> = ({
 
     // Password valid -> execute save
     setGoogleSheetUrl(url);
+    syncManager.pushServerConfig(url);
     if (newPasswordInput.trim()) {
       setAdminPassword(newPasswordInput.trim());
     }

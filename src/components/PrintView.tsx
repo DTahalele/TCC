@@ -2,6 +2,7 @@ import React from 'react';
 import { ScoreCardRecord, SCORE_CATEGORIES, ScoreLevel } from '../types/scoreCard';
 import { TCCLogo } from './TCCLogo';
 import { PrintFooter } from './PrintFooter';
+import { formatDisplayDate } from '../utils/dateFormatter';
 
 interface PrintViewProps {
   record: ScoreCardRecord;
@@ -60,11 +61,11 @@ export const PrintView: React.FC<PrintViewProps> = ({ record }) => {
           </div>
           <div>
             <span className="text-slate-600 block">Tanggal Lahir:</span>
-            <span className="font-bold">{record.DoB || '-'} ({record.Umur ?? '-'} Thn)</span>
+            <span className="font-bold">{formatDisplayDate(record.DoB)} ({record.Umur ?? '-'} Thn)</span>
           </div>
           <div>
             <span className="text-slate-600 block">Tanggal Tes / Coach:</span>
-            <span className="font-bold">{record.Test_Date} / {record.Coaches}</span>
+            <span className="font-bold">{formatDisplayDate(record.Test_Date)} / {record.Coaches || '-'}</span>
           </div>
         </div>
       </div>

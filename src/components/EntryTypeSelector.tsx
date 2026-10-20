@@ -1,5 +1,5 @@
 import React from 'react';
-import { UserCheck, UserPlus, Edit3, Sparkles, CheckCircle2, RotateCcw } from 'lucide-react';
+import { UserCheck, Edit3, RotateCcw } from 'lucide-react';
 import { CustomerType } from '../types/scoreCard';
 
 interface EntryTypeSelectorProps {
@@ -8,7 +8,7 @@ interface EntryTypeSelectorProps {
   editingRecordName?: string;
   editingMemberId?: string;
   onSelectMemberTCC: () => void;
-  onSelectNewUser: () => void;
+  onSelectNewUser?: () => void;
   onSelectEditExistData: () => void;
   onCancelEditMode?: () => void;
 }
@@ -25,13 +25,13 @@ export const EntryTypeSelector: React.FC<EntryTypeSelectorProps> = ({
 }) => {
   return (
     <div className="space-y-3">
-      {/* 3 Main Action Buttons matching mockup */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+      {/* 2 Main Action Buttons for Member TCC Assessment */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {/* Button 1: Member TCC (Sesi Baru) */}
         <button
           type="button"
           onClick={onSelectMemberTCC}
-          className={`relative group flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold text-xs sm:text-sm transition-all duration-200 border ${
+          className={`relative group flex items-center justify-center gap-2.5 px-4 py-3.5 rounded-xl font-bold text-xs sm:text-sm transition-all duration-200 border ${
             currentEntryType === 'member'
               ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600 shadow-md shadow-emerald-600/20 ring-2 ring-emerald-500/30'
               : 'bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200/70 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700'
@@ -46,30 +46,11 @@ export const EntryTypeSelector: React.FC<EntryTypeSelectorProps> = ({
           </div>
         </button>
 
-        {/* Button 2: New User (Trial) */}
-        <button
-          type="button"
-          onClick={onSelectNewUser}
-          className={`relative group flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold text-xs sm:text-sm transition-all duration-200 border ${
-            currentEntryType === 'trial'
-              ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 dark:border-white shadow-md shadow-slate-900/20 ring-2 ring-slate-500/20'
-              : 'bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200/70 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700'
-          }`}
-        >
-          <UserPlus className={`w-4 h-4 ${currentEntryType === 'trial' ? 'text-emerald-400 dark:text-emerald-600' : 'text-slate-500'}`} />
-          <div className="text-left">
-            <span>New User</span>
-            <span className={`block text-[10px] font-normal opacity-90 ${currentEntryType === 'trial' ? 'text-slate-300 dark:text-slate-600' : 'text-slate-500'}`}>
-              Trial / Member Baru
-            </span>
-          </div>
-        </button>
-
-        {/* Button 3: Edit Exist Data */}
+        {/* Button 2: Edit Exist Data */}
         <button
           type="button"
           onClick={onSelectEditExistData}
-          className={`relative group flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold text-xs sm:text-sm transition-all duration-200 border ${
+          className={`relative group flex items-center justify-center gap-2.5 px-4 py-3.5 rounded-xl font-bold text-xs sm:text-sm transition-all duration-200 border ${
             currentEntryType === 'edit'
               ? 'bg-sky-600 hover:bg-sky-700 text-white border-sky-600 shadow-md shadow-sky-600/20 ring-2 ring-sky-500/30'
               : 'bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200/70 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700'

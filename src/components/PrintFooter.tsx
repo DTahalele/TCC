@@ -1,5 +1,6 @@
 import React from 'react';
 import { TCCLogo } from './TCCLogo';
+import { formatDisplayDate } from '../utils/dateFormatter';
 
 interface PrintFooterProps {
   className?: string;
@@ -57,7 +58,7 @@ export const PrintFooter: React.FC<PrintFooterProps> = ({
 
       {showTimestamp && (
         <div className="mt-2 text-[9px] text-slate-400 print:text-[8px] print:mt-1">
-          THE CORE CHAMBER • Official Assessment & Score Card Document • Dicetak pada {new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+          THE CORE CHAMBER • Official Assessment & Score Card Document • Dicetak pada {formatDisplayDate(new Date())}
         </div>
       )}
     </div>
