@@ -135,7 +135,7 @@ export const Header: React.FC<HeaderProps> = ({
             </span>
           </button>
 
-          {/* 3. Upcoming Trial Tab */}
+          {/* 3. TRIAL Tab */}
           <button
             type="button"
             onClick={() => setCurrentTab('upcoming_trial')}
@@ -146,7 +146,7 @@ export const Header: React.FC<HeaderProps> = ({
             }`}
           >
             <CalendarCheck className="w-3.5 h-3.5 text-rose-500" />
-            <span>Upcoming Trial</span>
+            <span>TRIAL</span>
             {upcomingTrialCount > 0 && (
               <span
                 className={`ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-extrabold flex items-center gap-1 ${

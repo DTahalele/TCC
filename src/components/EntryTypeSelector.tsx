@@ -1,5 +1,5 @@
 import React from 'react';
-import { UserCheck, Edit3, RotateCcw } from 'lucide-react';
+import { UserCheck, RotateCcw } from 'lucide-react';
 import { CustomerType } from '../types/scoreCard';
 
 interface EntryTypeSelectorProps {
@@ -9,7 +9,7 @@ interface EntryTypeSelectorProps {
   editingMemberId?: string;
   onSelectMemberTCC: () => void;
   onSelectNewUser?: () => void;
-  onSelectEditExistData: () => void;
+  onSelectEditExistData?: () => void;
   onCancelEditMode?: () => void;
 }
 
@@ -25,44 +25,52 @@ export const EntryTypeSelector: React.FC<EntryTypeSelectorProps> = ({
 }) => {
   return (
     <div className="space-y-3">
-      {/* 2 Main Action Buttons for Member TCC Assessment */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {/* Button 1: Member TCC (Sesi Baru) */}
+      {/* Main Action Button for Member TCC Assessment */}
+      <div className="flex flex-col sm:flex-row items-stretch gap-3">
+        {/* Button: Member TCC (Sesi Baru / Member Lama) */}
         <button
           type="button"
           onClick={onSelectMemberTCC}
-          className={`relative group flex items-center justify-center gap-2.5 px-4 py-3.5 rounded-xl font-bold text-xs sm:text-sm transition-all duration-200 border ${
+          className={`flex-1 relative group flex items-center justify-between gap-3 px-5 py-3.5 rounded-xl font-bold text-xs sm:text-sm transition-all duration-200 border cursor-pointer ${
             currentEntryType === 'member'
               ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600 shadow-md shadow-emerald-600/20 ring-2 ring-emerald-500/30'
-              : 'bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200/70 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700'
+              : 'bg-white dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 border-slate-200 dark:border-slate-700'
           }`}
         >
-          <UserCheck className={`w-4 h-4 ${currentEntryType === 'member' ? 'text-white' : 'text-emerald-600'}`} />
-          <div className="text-left">
-            <span>Member TCC</span>
-            <span className={`block text-[10px] font-normal opacity-90 ${currentEntryType === 'member' ? 'text-emerald-100' : 'text-slate-500'}`}>
-              Sesi Baru / Member Lama
-            </span>
+          <div className="flex items-center gap-3">
+            <div
+              className={`p-2 rounded-lg ${
+                currentEntryType === 'member'
+                  ? 'bg-white/20 text-white'
+                  : 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400'
+              }`}
+            >
+              <UserCheck className="w-5 h-5" />
+            </div>
+            <div className="text-left">
+              <span className="text-sm sm:text-base font-extrabold tracking-tight">
+                Member TCC (Sesi Baru / Member Lama)
+              </span>
+              <span
+                className={`block text-[11px] font-normal ${
+                  currentEntryType === 'member'
+                    ? 'text-emerald-100'
+                    : 'text-slate-500 dark:text-slate-400'
+                }`}
+              >
+                Klik di sini untuk memilih nama member dari database dan memulai sesi asesmen fisik berkala
+              </span>
+            </div>
           </div>
-        </button>
-
-        {/* Button 2: Edit Exist Data */}
-        <button
-          type="button"
-          onClick={onSelectEditExistData}
-          className={`relative group flex items-center justify-center gap-2.5 px-4 py-3.5 rounded-xl font-bold text-xs sm:text-sm transition-all duration-200 border ${
-            currentEntryType === 'edit'
-              ? 'bg-sky-600 hover:bg-sky-700 text-white border-sky-600 shadow-md shadow-sky-600/20 ring-2 ring-sky-500/30'
-              : 'bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200/70 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700'
-          }`}
-        >
-          <Edit3 className={`w-4 h-4 ${currentEntryType === 'edit' ? 'text-white' : 'text-sky-600'}`} />
-          <div className="text-left">
-            <span>Edit Exist Data</span>
-            <span className={`block text-[10px] font-normal opacity-90 ${currentEntryType === 'edit' ? 'text-sky-100' : 'text-slate-500'}`}>
-              Cari & Perbarui Baris Data
-            </span>
-          </div>
+          <span
+            className={`hidden sm:inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold ${
+              currentEntryType === 'member'
+                ? 'bg-white/20 text-white'
+                : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
+            }`}
+          >
+            Pilih Member &rarr;
+          </span>
         </button>
       </div>
 

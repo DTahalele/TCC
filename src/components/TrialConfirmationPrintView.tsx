@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { TrialRegistrationRecord } from '../types/trialRegistration';
 import { TCCLogo } from './TCCLogo';
 import { PrintFooter } from './PrintFooter';
+import { DisclaimerSection } from './DisclaimerSection';
 import { formatDisplayDate } from '../utils/dateFormatter';
 import {
   Printer,
@@ -165,7 +166,7 @@ _The Core Chamber Team_`;
               <span className="block text-[10px] font-bold text-slate-500 uppercase border-b border-slate-100 pb-1 mb-2">
                 Data Diri Calon Member
               </span>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5 text-xs">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5 text-xs">
                 <div>
                   <span className="text-[10px] text-slate-400 block">Nama Lengkap:</span>
                   <span className="font-bold text-slate-900">{trial.Full_Name || '-'}</span>
@@ -173,8 +174,16 @@ _The Core Chamber Team_`;
                 <div>
                   <span className="text-[10px] text-slate-400 block">Gender / Umur:</span>
                   <span className="font-semibold text-slate-800">
-                    {trial.Gender || '-'} · {trial.Umur !== null && trial.Umur !== undefined ? `${trial.Umur} Tahun` : '-'}
+                    {trial.Gender || '-'} · {trial.Umur !== null && trial.Umur !== undefined ? `${trial.Umur} Thn` : '-'}
                   </span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-400 block">Tanggal Lahir:</span>
+                  <span className="font-semibold text-slate-800">{trial.DoB ? formatDisplayDate(trial.DoB) : '-'}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-400 block">Email:</span>
+                  <span className="font-semibold text-slate-800 truncate block" title={trial.Email}>{trial.Email || '-'}</span>
                 </div>
                 <div>
                   <span className="text-[10px] text-slate-400 block">WhatsApp:</span>
@@ -201,36 +210,53 @@ _The Core Chamber Team_`;
 
             <div className="text-xs">
               {trial.Customer_type === 'Trial Kids' ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 bg-white p-3 rounded-lg border border-slate-200">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 bg-white p-3 rounded-lg border border-slate-200">
                   <div>
-                    <span className="text-[10px] text-slate-400 block">Sekolah / Grade:</span>
+                    <span className="text-[10px] text-slate-400 block">Sekolah / Kelas:</span>
                     <span className="font-semibold text-slate-900">
                       {trial.nama_sekolah || '-'} ({trial.kelas_grade || '-'})
                     </span>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-400 block">Nama Ayah / WA:</span>
+                    <span className="text-[10px] text-slate-400 block">Nama Ayah / No WA:</span>
                     <span className="font-semibold text-slate-800">
                       {trial.nama_ayah || '-'} {trial.no_whatsapp_ayah ? `(${trial.no_whatsapp_ayah})` : ''}
                     </span>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-400 block">Nama Ibu / WA:</span>
+                    <span className="text-[10px] text-slate-400 block">Nama Ibu / No WA:</span>
                     <span className="font-semibold text-slate-800">
                       {trial.nama_ibu || '-'} {trial.no_whatsapp_ibu ? `(${trial.no_whatsapp_ibu})` : ''}
                     </span>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-400 block">Klub / Frekuensi:</span>
-                    <span className="text-slate-800">
-                      {trial.formakids_tergabung_dalamClub === 'YA'
-                        ? `${trial.formakids_cabang_olahraga || 'Klub'} (${trial.formakids_frek_Latihan || '-'})`
-                        : 'Belum Ada'}
+                    <span className="text-[10px] text-slate-400 block">Email Orang Tua:</span>
+                    <span className="font-semibold text-slate-800">
+                      {trial.email_orangTua || '-'}
                     </span>
                   </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 block">Klub & Cabang Olahraga:</span>
+                    <span className="text-slate-800">
+                      {trial.formakids_tergabung_dalamClub === 'YA'
+                        ? `Ya, ${trial.formakids_cabang_olahraga || 'Klub'}`
+                        : 'Tidak Tergabung'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 block">Aktif Olahraga & Frekuensi:</span>
+                    <span className="font-semibold text-slate-800">
+                      {trial.formakids_aktif_olahraga || 'YA'} ({trial.formakids_frek_Latihan || '-'})
+                    </span>
+                  </div>
+                  {trial.nama_wali && (
+                    <div className="sm:col-span-2 md:col-span-3 pt-1 border-t border-slate-100 text-[11px] text-slate-600">
+                      <span className="font-bold">Wali:</span> {trial.nama_wali} {trial.no_whatsapp_wali ? `(${trial.no_whatsapp_wali})` : ''}
+                    </div>
+                  )}
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 bg-white p-3 rounded-lg border border-slate-200">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 bg-white p-3 rounded-lg border border-slate-200">
                   <div>
                     <span className="text-[10px] text-slate-400 block">Pekerjaan:</span>
                     <span className="font-bold text-slate-900">{trial.formadults_pekerjaan || '-'}</span>
@@ -240,12 +266,20 @@ _The Core Chamber Team_`;
                     <span className="text-slate-800">{trial.formadults_perusahaan || '-'}</span>
                   </div>
                   <div>
+                    <span className="text-[10px] text-slate-400 block">Alamat Kantor:</span>
+                    <span className="text-slate-800">{trial.formadults_alamatKantor || '-'}</span>
+                  </div>
+                  <div>
                     <span className="text-[10px] text-slate-400 block">Klub / Cabang Olahraga:</span>
                     <span className="text-slate-800">
                       {trial.formadults_tergabung_dalamKlub === 'YA'
                         ? `Ya, ${trial.formadults_cabang_olahraga || ''}`
                         : 'Tidak Tergabung'}
                     </span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 block">Aktif Berolahraga:</span>
+                    <span className="font-semibold text-slate-800">{trial.formadults_aktif_olahraga || 'YA'}</span>
                   </div>
                   <div>
                     <span className="text-[10px] text-slate-400 block">Frekuensi Latihan:</span>
@@ -512,6 +546,11 @@ _The Core Chamber Team_`;
                 {trial.signature_coordinator || '( Coordinator )'}
               </div>
             </div>
+          </div>
+
+          {/* Disclaimer Box before Footer */}
+          <div className="pt-2">
+            <DisclaimerSection />
           </div>
 
           {/* Centered Brand, Logo & Contact Footer */}

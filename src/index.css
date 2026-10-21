@@ -88,8 +88,8 @@ input[type="date"] {
   button,
   .no-print,
   [role="dialog"],
-  .fixed,
-  .sticky {
+  .fixed:not(.print-container),
+  .sticky:not(.print-container) {
     display: none !important;
     visibility: hidden !important;
     height: 0 !important;
@@ -109,6 +109,13 @@ input[type="date"] {
     color: #000000 !important;
     height: auto !important;
     overflow: visible !important;
+  }
+
+  .print-container .rounded-xl,
+  .print-container .border-2,
+  .print-container .break-inside-avoid {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
   }
 
   .print-container * {

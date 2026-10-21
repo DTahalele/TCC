@@ -42,7 +42,6 @@ import { BodyCompositionSection } from './components/BodyCompositionSection';
 import { ScoringSection, ScoreItemConfig } from './components/ScoringSection';
 import { CoachNotesSection } from './components/CoachNotesSection';
 import { DataSummarySection } from './components/DataSummarySection';
-import { DisclaimerSection } from './components/DisclaimerSection';
 import { FooterActions } from './components/FooterActions';
 
 import { ArchiveModal } from './components/ArchiveModal';
@@ -850,6 +849,20 @@ export default function App() {
       return;
     }
 
+    // Validation: Coach / Instruktur Assessment WAJIB minimal 1 pelatih
+    const coachList = (formData.Coaches || '')
+      .split(',')
+      .map((c) => c.trim())
+      .filter(Boolean);
+    if (coachList.length === 0) {
+      setToastMessage({
+        text: '⚠️ Wajib memilih minimal 1 Coach / Instruktur Assessment! Kolom ini tidak boleh kosong.',
+        type: 'error',
+      });
+      alert('⚠️ Kolom "Coach / Instruktur Assessment" WAJIB diisi minimal 1 pelatih sebelum menyimpan formulir.');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -919,6 +932,21 @@ export default function App() {
       });
       return;
     }
+
+    // Validation: Coach / Instruktur Assessment WAJIB minimal 1 pelatih
+    const coachList = (formData.Coaches || '')
+      .split(',')
+      .map((c) => c.trim())
+      .filter(Boolean);
+    if (coachList.length === 0) {
+      setToastMessage({
+        text: '⚠️ Wajib memilih minimal 1 Coach / Instruktur Assessment sebelum mencetak formulir PDF!',
+        type: 'error',
+      });
+      alert('⚠️ Kolom "Coach / Instruktur Assessment" WAJIB diisi minimal 1 pelatih sebelum mencetak Score Card.');
+      return;
+    }
+
     setRecordToPrint(formData);
     setTimeout(() => {
       window.print();
@@ -1199,7 +1227,6 @@ export default function App() {
               editingRecordName={formData.Full_Name}
               editingMemberId={formData.MemberID}
               onSelectMemberTCC={handleSelectMemberTCC}
-              onSelectEditExistData={handleSelectEditExistData}
               onCancelEditMode={isEditing ? handleCancelEditMode : undefined}
             />
 
@@ -1325,9 +1352,6 @@ export default function App() {
               }
             />
 
-            {/* Section 7: DISCLAIMER */}
-            <DisclaimerSection />
-
             {/* Footer Actions */}
             <FooterActions
               isEditing={isEditing}
@@ -1340,8 +1364,10 @@ export default function App() {
         )}
       </main>
 
-      {/* Printable Score Card Layout (Visible when window.print() is executed) */}
-      <PrintView record={recordToPrint || formData} />
+      {/* Printable Score Card Layout (Visible when window.print() is executed and NOT in trial print mode) */}
+      {!isTrialPrintOpen && (
+        <PrintView record={recordToPrint || formData} />
+      )}
 
       {/* Modal: Google Sheet Database Setup */}
       <GoogleSheetModal

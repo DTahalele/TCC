@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { ScoreCardRecord, SCORE_CATEGORIES, ScoreLevel } from '../types/scoreCard';
 import { TCCLogo } from './TCCLogo';
 import { PrintFooter } from './PrintFooter';
+import { DisclaimerSection } from './DisclaimerSection';
 import { formatDisplayDate } from '../utils/dateFormatter';
 
 interface PrintViewProps {
@@ -9,6 +10,11 @@ interface PrintViewProps {
 }
 
 export const PrintView: React.FC<PrintViewProps> = ({ record }) => {
+  const coachesList = useMemo(() => {
+    if (!record.Coaches) return [];
+    return record.Coaches.split(',').map((c) => c.trim()).filter(Boolean);
+  }, [record.Coaches]);
+
   const customerName =
     record.Full_Name ||
     (record as any).fullName ||
@@ -87,10 +93,11 @@ export const PrintView: React.FC<PrintViewProps> = ({ record }) => {
           <div>Left Calf: <strong className="font-mono">{record.left_calf ?? '-'} cm</strong></div>
           <div>Right Calf: <strong className="font-mono">{record.right_calf ?? '-'} cm</strong></div>
         </div>
-        <div className="grid grid-cols-4 gap-2 border border-black p-2 bg-slate-50 text-center text-[11px]">
+        <div className="grid grid-cols-5 gap-2 border border-black p-2 bg-slate-50 text-center text-[10px]">
           <div>Tinggi: <strong>{record.height ?? '-'} cm</strong></div>
           <div>Berat: <strong>{record.weight ?? '-'} kg</strong></div>
           <div>Body Fat: <strong>{record.body_fat !== null ? `${record.body_fat}%` : '-'}</strong></div>
+          <div>Massa Otot: <strong>{record.muscle_mass !== null ? `${record.muscle_mass}%` : '-'}</strong></div>
           <div>BMI: <strong>{record.BMI ?? '-'} ({record.cat_bmi || '-'})</strong></div>
         </div>
       </div>
@@ -166,10 +173,27 @@ export const PrintView: React.FC<PrintViewProps> = ({ record }) => {
         </div>
         <div>
           <p className="mb-12">Coach / Instruktur Penguji</p>
-          <div className="border-t border-black w-48 mx-auto font-bold pt-1">
-            ( {record.Coaches || 'Coach TCC'} )
-          </div>
+          {coachesList.length > 1 ? (
+            <div className="flex flex-wrap justify-center gap-4">
+              {coachesList.map((coachName) => (
+                <div key={coachName} className="min-w-[120px] max-w-[160px]">
+                  <div className="border-t border-black px-2 font-bold pt-1 text-[9.5px]">
+                    ( {coachName} )
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="border-t border-black w-48 mx-auto font-bold pt-1">
+              ( {coachesList[0] || record.Coaches || 'Coach TCC'} )
+            </div>
+          )}
         </div>
+      </div>
+
+      {/* Disclaimer Box before Footer */}
+      <div className="pt-4">
+        <DisclaimerSection className="border-black/60 bg-slate-50 text-slate-900" />
       </div>
 
       {/* Centered Brand & Contact Footer */}
