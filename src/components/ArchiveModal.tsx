@@ -18,6 +18,7 @@ import {
   ArrowRight,
   Filter,
   UserCheck,
+  Eye,
 } from 'lucide-react';
 import { ScoreCardRecord } from '../types/scoreCard';
 import { exportRecordsToCSV, isTestRecord } from '../utils/storage';
@@ -59,6 +60,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
 }) => {
   const [search, setSearch] = useState('');
   const [filterGender, setFilterGender] = useState<'all' | 'male' | 'female'>('all');
+  const [selectedRecordForReview, setSelectedRecordForReview] = useState<ScoreCardRecord | null>(null);
 
   // Helper to safely extract customer full name with fallbacks
   const getRecordName = (r: ScoreCardRecord): string => {
@@ -431,7 +433,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                       >
                         {/* 1. Nama Member & ID */}
                         <td className="py-3.5 px-3.5 border-r border-slate-200 dark:border-slate-800">
-                          <div className="font-extrabold text-sm text-slate-900 dark:text-white">
+                          <div className="font-extrabold text-sm text-slate-900 dark:text-white break-words whitespace-normal leading-snug">
                             {memberName}
                           </div>
                           <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
@@ -460,7 +462,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                           </div>
                           <div className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mt-0.5">
                             <UserCheck className="w-3 h-3 text-indigo-600 dark:text-indigo-400 shrink-0" />
-                            <span className="font-medium text-slate-700 dark:text-slate-300 truncate max-w-[140px]">{coachName}</span>
+                            <span className="font-medium text-slate-700 dark:text-slate-300 break-words whitespace-normal leading-tight max-w-[200px]">{coachName}</span>
                           </div>
                         </td>
 
@@ -499,6 +501,17 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                         {/* 7. Aksi Operasional */}
                         <td className="py-3.5 px-3.5 text-right">
                           <div className="flex items-center justify-end gap-1.5">
+                            {/* Review Hasil Asesmen */}
+                            <button
+                              type="button"
+                              onClick={() => setSelectedRecordForReview(r)}
+                              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900 transition-colors shadow-2xs cursor-pointer"
+                              title="Review detail hasil lengkap asesmen member ini"
+                            >
+                              <Eye className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                              <span className="hidden xl:inline">Review</span>
+                            </button>
+
                             {/* Edit Data */}
                             <button
                               type="button"
@@ -580,13 +593,285 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
     </div>
   );
 
-  if (isFullPage) {
-    return content;
-  }
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/60 backdrop-blur-xs">
-      {content}
-    </div>
+    <>
+      {isFullPage ? (
+        content
+      ) : (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/60 backdrop-blur-xs">
+          {content}
+        </div>
+      )}
+
+      {/* Modal Review Hasil Asesmen Lengkap Member TCC */}
+      {selectedRecordForReview && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-3 sm:p-5 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-4xl max-h-[90vh] shadow-2xl flex flex-col overflow-hidden">
+            {/* 1. Header Review Modal */}
+            <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-start justify-between gap-4 bg-slate-50/70 dark:bg-slate-850/60">
+              <div className="space-y-1">
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-black uppercase tracking-wider bg-emerald-100 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200 border border-emerald-400">
+                    MEMBER TCC
+                  </span>
+                  <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200">
+                    {selectedRecordForReview.MemberID || 'TCC-????'}
+                  </span>
+                  <span className="text-xs text-slate-500 capitalize">
+                    {selectedRecordForReview.Gender || 'Male'} · {getRecordAge(selectedRecordForReview)} th
+                  </span>
+                </div>
+                <h3 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
+                  {getRecordName(selectedRecordForReview)}
+                </h3>
+                <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 dark:text-slate-400 pt-0.5">
+                  <span className="flex items-center gap-1">
+                    <Calendar className="w-3.5 h-3.5 text-amber-600" />
+                    Tanggal Tes: <strong>{getRecordTestDate(selectedRecordForReview)}</strong>
+                  </span>
+                  <span>·</span>
+                  <span className="flex items-center gap-1">
+                    <UserCheck className="w-3.5 h-3.5 text-indigo-600" />
+                    Coach: <strong>{getRecordCoach(selectedRecordForReview)}</strong>
+                  </span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setSelectedRecordForReview(null)}
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* 2. Scrollable Body Content */}
+            <div className="p-6 overflow-y-auto space-y-6 text-xs sm:text-sm">
+              {/* Section A: Komposisi Tubuh & Antropometri */}
+              <div className="rounded-2xl border border-slate-200 dark:border-slate-800 p-4 bg-slate-50/40 dark:bg-slate-850/30 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-extrabold text-slate-900 dark:text-white uppercase tracking-tight text-xs flex items-center gap-2">
+                    <Scale className="w-4 h-4 text-emerald-600" />
+                    1. Komposisi Tubuh & Antropometri
+                  </h4>
+                  {selectedRecordForReview.cat_bmi && (
+                    <span className={`px-2.5 py-0.5 rounded text-[11px] font-black border ${getBMIBadgeStyle(selectedRecordForReview.cat_bmi).bg} ${getBMIBadgeStyle(selectedRecordForReview.cat_bmi).text}`}>
+                      BMI {selectedRecordForReview.BMI} ({selectedRecordForReview.cat_bmi})
+                    </span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="bg-white dark:bg-slate-800 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700">
+                    <span className="text-[10px] text-slate-400 font-bold block uppercase">Tinggi / Berat</span>
+                    <span className="font-mono font-extrabold text-slate-800 dark:text-slate-100">
+                      {selectedRecordForReview.height || '-'} cm / {selectedRecordForReview.weight || '-'} kg
+                    </span>
+                  </div>
+                  <div className="bg-white dark:bg-slate-800 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700">
+                    <span className="text-[10px] text-slate-400 font-bold block uppercase">Body Fat %</span>
+                    <span className="font-mono font-extrabold text-emerald-600 dark:text-emerald-400">
+                      {selectedRecordForReview.body_fat !== null ? `${selectedRecordForReview.body_fat}%` : '-'}
+                    </span>
+                  </div>
+                  <div className="bg-white dark:bg-slate-800 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700">
+                    <span className="text-[10px] text-slate-400 font-bold block uppercase">Muscle Mass %</span>
+                    <span className="font-mono font-extrabold text-sky-600 dark:text-sky-400">
+                      {selectedRecordForReview.muscle_mass !== null ? `${selectedRecordForReview.muscle_mass}%` : '-'}
+                    </span>
+                  </div>
+                  <div className="bg-white dark:bg-slate-800 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700">
+                    <span className="text-[10px] text-slate-400 font-bold block uppercase">Wing Span</span>
+                    <span className="font-mono font-extrabold text-slate-800 dark:text-slate-100">
+                      {selectedRecordForReview.wing_span ? `${selectedRecordForReview.wing_span} cm` : '-'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 text-[11px] text-slate-600 dark:text-slate-300">
+                  <div className="p-2 rounded-lg bg-slate-100/70 dark:bg-slate-800/60">Dada: <strong>{selectedRecordForReview.chest || '-'} cm</strong></div>
+                  <div className="p-2 rounded-lg bg-slate-100/70 dark:bg-slate-800/60">Pinggang: <strong>{selectedRecordForReview.waist || '-'} cm</strong></div>
+                  <div className="p-2 rounded-lg bg-slate-100/70 dark:bg-slate-800/60">Pinggul: <strong>{selectedRecordForReview.hips || '-'} cm</strong></div>
+                  <div className="p-2 rounded-lg bg-slate-100/70 dark:bg-slate-800/60">Lengan (Ki/Ka): <strong>{selectedRecordForReview.left_arm || '-'}/{selectedRecordForReview.right_arm || '-'}</strong></div>
+                  <div className="p-2 rounded-lg bg-slate-100/70 dark:bg-slate-800/60">Paha (Ki/Ka): <strong>{selectedRecordForReview.left_thigh || '-'}/{selectedRecordForReview.right_tight || '-'}</strong></div>
+                  <div className="p-2 rounded-lg bg-slate-100/70 dark:bg-slate-800/60">Betis (Ki/Ka): <strong>{selectedRecordForReview.left_calf || '-'}/{selectedRecordForReview.right_calf || '-'}</strong></div>
+                </div>
+              </div>
+
+              {/* Section B: Functional Assessment */}
+              <div className="rounded-2xl border border-slate-200 dark:border-slate-800 p-4 bg-slate-50/40 dark:bg-slate-850/30 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-extrabold text-slate-900 dark:text-white uppercase tracking-tight text-xs flex items-center gap-2">
+                    <Activity className="w-4 h-4 text-indigo-600" />
+                    2. Functional Assessment
+                  </h4>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-slate-500">Rata-rata:</span>
+                    <span className="font-mono font-black text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800">
+                      {selectedRecordForReview.avg_functional !== null ? `${selectedRecordForReview.avg_functional.toFixed(1)} / 4.0` : '-'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+                  {[
+                    { label: 'Deep Squat', score: selectedRecordForReview.score_deepSquat, cat: selectedRecordForReview.cat_deepSquat },
+                    { label: 'Hurdle Step', score: selectedRecordForReview.score_hurdleStep, cat: selectedRecordForReview.cat_hurdleStep },
+                    { label: 'Inline Lunge', score: selectedRecordForReview.score_inlineLunge, cat: selectedRecordForReview.cat_inlineLunge },
+                    { label: 'Balance Test', score: selectedRecordForReview.score_balance, cat: selectedRecordForReview.cat_balance },
+                    { label: 'Landing Error', score: selectedRecordForReview.score_landing, cat: selectedRecordForReview.cat_landing },
+                  ].map((item, idx) => (
+                    <div key={idx} className="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                      <span className="text-[10px] text-slate-400 font-bold block break-words whitespace-normal leading-tight">{item.label}</span>
+                      <div className="flex items-baseline gap-1 mt-0.5">
+                        <span className="font-mono font-black text-base text-slate-900 dark:text-white">
+                          {item.score !== null ? item.score : '-'}
+                        </span>
+                        <span className="text-[10px] text-slate-400">/4</span>
+                      </div>
+                      <span className="block text-[10px] font-semibold text-indigo-600 dark:text-indigo-400 break-words whitespace-normal leading-tight">
+                        {item.cat || '-'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Section C: Strength Assessment */}
+              <div className="rounded-2xl border border-slate-200 dark:border-slate-800 p-4 bg-slate-50/40 dark:bg-slate-850/30 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-extrabold text-slate-900 dark:text-white uppercase tracking-tight text-xs flex items-center gap-2">
+                    <Award className="w-4 h-4 text-emerald-600" />
+                    3. Strength Assessment
+                  </h4>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-slate-500">Rata-rata:</span>
+                    <span className="font-mono font-black text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800">
+                      {selectedRecordForReview.avg_strength !== null ? `${selectedRecordForReview.avg_strength.toFixed(1)} / 4.0` : '-'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-6 gap-2">
+                  {[
+                    { label: 'Lower Body', score: selectedRecordForReview.score_lowerbody, cat: selectedRecordForReview.cat_lowerbody },
+                    { label: 'Unilateral', score: selectedRecordForReview.score_unilateralStrenght, cat: selectedRecordForReview.cat_unilateralStrenght },
+                    { label: 'Posterior', score: selectedRecordForReview.score_posteriorChain, cat: selectedRecordForReview.cat_posteriorChain },
+                    { label: 'Upper Body', score: selectedRecordForReview.score_upperBody, cat: selectedRecordForReview.cat_upperBody },
+                    { label: 'Core Stability', score: selectedRecordForReview.score_core, cat: selectedRecordForReview.cat_core },
+                    { label: 'Conditioning', score: selectedRecordForReview.score_conditioning, cat: selectedRecordForReview.cat_conditioning },
+                  ].map((item, idx) => (
+                    <div key={idx} className="p-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                      <span className="text-[10px] text-slate-400 font-bold block break-words whitespace-normal leading-tight">{item.label}</span>
+                      <div className="flex items-baseline gap-1 mt-0.5">
+                        <span className="font-mono font-black text-sm text-slate-900 dark:text-white">
+                          {item.score !== null ? item.score : '-'}
+                        </span>
+                        <span className="text-[10px] text-slate-400">/4</span>
+                      </div>
+                      <span className="block text-[9px] font-semibold text-emerald-600 dark:text-emerald-400 break-words whitespace-normal leading-tight">
+                        {item.cat || '-'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Section D: Skill Related Fitness */}
+              <div className="rounded-2xl border border-slate-200 dark:border-slate-800 p-4 bg-slate-50/40 dark:bg-slate-850/30 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-extrabold text-slate-900 dark:text-white uppercase tracking-tight text-xs flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-purple-600" />
+                    4. Skill Related Fitness
+                  </h4>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-slate-500">Rata-rata:</span>
+                    <span className="font-mono font-black text-purple-700 dark:text-purple-300 px-2 py-0.5 rounded bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800">
+                      {selectedRecordForReview.avg_skill !== null ? `${selectedRecordForReview.avg_skill.toFixed(1)} / 4.0` : '-'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+                  {[
+                    { label: 'Power', score: selectedRecordForReview.score_power, cat: selectedRecordForReview.cat_power },
+                    { label: 'Speed', score: selectedRecordForReview.score_speed, cat: selectedRecordForReview.cat_speed },
+                    { label: 'Agility', score: selectedRecordForReview.score_agility, cat: selectedRecordForReview.cat_agility },
+                    { label: 'Flexibility', score: selectedRecordForReview.score_flexibility, cat: selectedRecordForReview.cat_flexibility },
+                    { label: 'Coordination', score: selectedRecordForReview.score_coordination, cat: selectedRecordForReview.cat_coordination },
+                  ].map((item, idx) => (
+                    <div key={idx} className="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                      <span className="text-[10px] text-slate-400 font-bold block break-words whitespace-normal leading-tight">{item.label}</span>
+                      <div className="flex items-baseline gap-1 mt-0.5">
+                        <span className="font-mono font-black text-base text-slate-900 dark:text-white">
+                          {item.score !== null ? item.score : '-'}
+                        </span>
+                        <span className="text-[10px] text-slate-400">/4</span>
+                      </div>
+                      <span className="block text-[10px] font-semibold text-purple-600 dark:text-purple-400 break-words whitespace-normal leading-tight">
+                        {item.cat || '-'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Section E: Catatan Khusus Coach */}
+              <div className="rounded-2xl border border-slate-200 dark:border-slate-800 p-4 bg-slate-50/40 dark:bg-slate-850/30 space-y-1.5">
+                <h4 className="font-extrabold text-slate-900 dark:text-white uppercase tracking-tight text-xs">
+                  5. Catatan Evaluasi Coach / Instruktur
+                </h4>
+                <p className="text-xs text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-200 dark:border-slate-700 whitespace-pre-line">
+                  {selectedRecordForReview.notes?.trim() || 'Tidak ada catatan tambahan khusus dari coach.'}
+                </p>
+              </div>
+            </div>
+
+            {/* 3. Footer Action Buttons */}
+            <div className="p-4 sm:p-5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-850/60 flex flex-wrap items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={() => setSelectedRecordForReview(null)}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                Tutup
+              </button>
+
+              <div className="flex items-center gap-2">
+                {/* Cetak PDF Button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const rec = selectedRecordForReview;
+                    setSelectedRecordForReview(null);
+                    onPrintRecord(rec);
+                  }}
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 transition-colors cursor-pointer shadow-xs"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  <span>Cetak PDF</span>
+                </button>
+
+                {/* Edit Data Button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const rec = selectedRecordForReview;
+                    setSelectedRecordForReview(null);
+                    onLoadForEdit(rec);
+                    onClose();
+                  }}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-sky-600 hover:bg-sky-700 text-white transition-colors cursor-pointer shadow-xs"
+                >
+                  <Edit3 className="w-3.5 h-3.5" />
+                  <span>Edit Data di Form</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };

@@ -353,7 +353,7 @@ const MeasurementInput: React.FC<MeasurementInputProps> = ({
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between text-[11px]">
-        <span className="font-semibold text-slate-700 dark:text-slate-300 truncate" title={label}>
+        <span className="font-semibold text-slate-700 dark:text-slate-300 break-words whitespace-normal leading-tight" title={label}>
           {label}
         </span>
         {isFilled && (

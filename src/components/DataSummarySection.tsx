@@ -53,7 +53,7 @@ export const DataSummarySection: React.FC<DataSummarySectionProps> = ({
             <div className="text-lg sm:text-xl font-mono font-extrabold text-slate-900 dark:text-white tracking-wide">
               {memberId || 'TCC-XXXX'}
             </div>
-            <div className="text-xs font-semibold text-slate-600 dark:text-slate-400 truncate mt-0.5">
+            <div className="text-xs font-semibold text-slate-600 dark:text-slate-400 break-words whitespace-normal leading-snug mt-0.5">
               {fullName || 'Nama Peserta'}
             </div>
           </div>

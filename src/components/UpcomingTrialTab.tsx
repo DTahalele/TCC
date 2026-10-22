@@ -448,7 +448,7 @@ export const UpcomingTrialTab: React.FC<UpcomingTrialTabProps> = ({
                     >
                       {/* Name & ID */}
                       <td className="py-3 px-3.5 border-r border-slate-200 dark:border-slate-800">
-                        <div className="font-bold text-sm text-slate-900 dark:text-slate-100">
+                        <div className="font-bold text-sm text-slate-900 dark:text-slate-100 break-words whitespace-normal leading-snug">
                           {t.Full_Name}
                         </div>
                         <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
@@ -470,12 +470,12 @@ export const UpcomingTrialTab: React.FC<UpcomingTrialTabProps> = ({
                           {t.Customer_type === 'Trial Kids' ? 'KIDS 🧒' : 'ADULTS 🧑'}
                         </span>
                         {t.Customer_type === 'Trial Kids' && t.nama_sekolah && (
-                          <span className="block text-[10px] text-slate-500 dark:text-slate-400 truncate max-w-[120px] mt-0.5">
+                          <span className="block text-[10px] text-slate-500 dark:text-slate-400 break-words whitespace-normal leading-tight mt-0.5">
                             {t.nama_sekolah}
                           </span>
                         )}
                         {t.Customer_type === 'Trial Adults' && t.formadults_pekerjaan && (
-                          <span className="block text-[10px] text-slate-500 dark:text-slate-400 truncate max-w-[120px] mt-0.5">
+                          <span className="block text-[10px] text-slate-500 dark:text-slate-400 break-words whitespace-normal leading-tight mt-0.5">
                             {t.formadults_pekerjaan}
                           </span>
                         )}
@@ -518,7 +518,7 @@ export const UpcomingTrialTab: React.FC<UpcomingTrialTabProps> = ({
                       {/* Coaches */}
                       <td className="py-3 px-3 border-r border-slate-200 dark:border-slate-800">
                         {t.Coaches && t.Coaches.length > 0 ? (
-                          <div className="font-semibold text-slate-800 dark:text-slate-200 max-w-[140px] truncate" title={t.Coaches.join(', ')}>
+                          <div className="font-semibold text-slate-800 dark:text-slate-200 break-words whitespace-normal leading-tight" title={t.Coaches.join(', ')}>
                             {t.Coaches.join(', ')}
                           </div>
                         ) : (

@@ -1510,9 +1510,9 @@ export const TrialRegistrationModal: React.FC<TrialRegistrationModalProps> = ({
                           {formData.avg_skill !== null && formData.avg_skill !== undefined ? `${formData.avg_skill.toFixed(2)}` : '-'}
                         </span>
                       </div>
-                      <div className="bg-slate-900/90 rounded-lg p-2.5 border border-slate-800 flex justify-between items-center">
-                        <span className="text-[10px] text-slate-400 font-semibold uppercase">Predikat Fisik:</span>
-                        <span className="font-bold text-amber-300 text-xs truncate">
+                      <div className="bg-slate-900/90 rounded-lg p-2.5 border border-slate-800 flex justify-between items-center gap-2">
+                        <span className="text-[10px] text-slate-400 font-semibold uppercase shrink-0">Predikat Fisik:</span>
+                        <span className="font-bold text-amber-300 text-xs break-words whitespace-normal text-right">
                           {getOverallGrade(overallPhysicalAvg)}
                         </span>
                       </div>

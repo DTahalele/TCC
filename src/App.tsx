@@ -200,8 +200,9 @@ export default function App() {
   const [isSyncingTrials, setIsSyncingTrials] = useState(false);
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'info' | 'error' } | null>(null);
 
-  // Dedicated state for isolated single-customer scorecard printing
+  // Dedicated state for isolated single-customer scorecard printing & preview modal
   const [recordToPrint, setRecordToPrint] = useState<ScoreCardRecord | null>(null);
+  const [isScoreCardPrintOpen, setIsScoreCardPrintOpen] = useState(false);
 
   // Initialize records & trials on mount & auto-sync from multi-tier cloud & server database
   useEffect(() => {
@@ -948,18 +949,13 @@ export default function App() {
     }
 
     setRecordToPrint(formData);
-    setTimeout(() => {
-      window.print();
-    }, 120);
+    setIsScoreCardPrintOpen(true);
   };
 
   // Print specific record from archive (exclusively prints this customer's score card)
   const handlePrintSpecificRecord = (record: ScoreCardRecord) => {
     setRecordToPrint(record);
-    setFormData(record);
-    setTimeout(() => {
-      window.print();
-    }, 120);
+    setIsScoreCardPrintOpen(true);
   };
 
   // Delete record from archive
@@ -1364,9 +1360,16 @@ export default function App() {
         )}
       </main>
 
-      {/* Printable Score Card Layout (Visible when window.print() is executed and NOT in trial print mode) */}
-      {!isTrialPrintOpen && (
-        <PrintView record={recordToPrint || formData} />
+      {/* Modal: Lembar Score Card Member TCC Siap Cetak / Simpan PDF */}
+      {isScoreCardPrintOpen && (recordToPrint || formData) && (
+        <PrintView
+          record={recordToPrint || formData}
+          isOpen={isScoreCardPrintOpen}
+          onClose={() => {
+            setIsScoreCardPrintOpen(false);
+            setRecordToPrint(null);
+          }}
+        />
       )}
 
       {/* Modal: Google Sheet Database Setup */}

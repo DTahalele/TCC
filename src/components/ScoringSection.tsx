@@ -99,7 +99,7 @@ const ScoreItemCard: React.FC<ScoreItemCardProps> = ({ item, onSelect }) => {
       {/* Card Header: Title, Filled Check, and Category Badge */}
       <div className="flex items-center justify-between gap-1 mb-2.5">
         <div className="flex items-center gap-1.5 min-w-0">
-          <span className="text-xs font-bold text-slate-900 dark:text-white truncate">
+          <span className="text-xs font-bold text-slate-900 dark:text-white break-words whitespace-normal leading-tight">
             {item.label}
           </span>
           {isFilled && (

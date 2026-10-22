@@ -104,64 +104,77 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Right Header: Navigation Tabs + Modern 3-Dots Menu */}
         <div className="flex items-center gap-1.5 sm:gap-2.5 text-sm">
-          {/* 1. Score Card (Member Only) Tab */}
-          <button
-            type="button"
-            onClick={() => setCurrentTab('form')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-              currentTab === 'form'
-                ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm'
-                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-            }`}
-          >
-            <FileText className="w-3.5 h-3.5" />
-            <span>Score Card (Member Only)</span>
-          </button>
+          {/* Navigation Tabs with Border Separators */}
+          <div className="flex items-center bg-slate-100/90 dark:bg-slate-800/80 p-1 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-2xs">
+            {/* 1. Score Card (Member Only) Tab */}
+            <button
+              type="button"
+              onClick={() => setCurrentTab('form')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                currentTab === 'form'
+                  ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-700/60'
+              }`}
+            >
+              <FileText className="w-3.5 h-3.5" />
+              <span>Score Card (Member Only)</span>
+            </button>
 
-          {/* 2. Arsip Tab */}
-          <button
-            type="button"
-            onClick={() => setCurrentTab('archive')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-              currentTab === 'archive'
-                ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm'
-                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-            }`}
-          >
-            <Database className="w-3.5 h-3.5" />
-            <span>Arsip Member TCC</span>
-            <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200">
-              {archiveCount}
-            </span>
-          </button>
+            {/* Separator / Pemisah antara Tab 1 & Tab 2 */}
+            <div className="h-4 sm:h-5 w-px bg-slate-300 dark:bg-slate-600 mx-1 shrink-0" />
 
-          {/* 3. TRIAL Tab */}
-          <button
-            type="button"
-            onClick={() => setCurrentTab('upcoming_trial')}
-            className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-              currentTab === 'upcoming_trial'
-                ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm'
-                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-            }`}
-          >
-            <CalendarCheck className="w-3.5 h-3.5 text-rose-500" />
-            <span>TRIAL</span>
-            {upcomingTrialCount > 0 && (
-              <span
-                className={`ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-extrabold flex items-center gap-1 ${
-                  upcomingTodayCount > 0
-                    ? 'bg-rose-600 text-white animate-pulse'
-                    : 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border border-rose-300 dark:border-rose-800'
-                }`}
-              >
-                {upcomingTodayCount > 0 && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
-                )}
-                <span>{upcomingTrialCount}</span>
+            {/* 2. Arsip Tab */}
+            <button
+              type="button"
+              onClick={() => setCurrentTab('archive')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                currentTab === 'archive'
+                  ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-700/60'
+              }`}
+            >
+              <Database className="w-3.5 h-3.5" />
+              <span>Arsip Member TCC</span>
+              <span className={`ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                currentTab === 'archive'
+                  ? 'bg-slate-800 text-slate-100 dark:bg-slate-200 dark:text-slate-800'
+                  : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200'
+              }`}>
+                {archiveCount}
               </span>
-            )}
-          </button>
+            </button>
+
+            {/* Separator / Pemisah antara Tab 2 & Tab 3 */}
+            <div className="h-4 sm:h-5 w-px bg-slate-300 dark:bg-slate-600 mx-1 shrink-0" />
+
+            {/* 3. TRIAL Tab */}
+            <button
+              type="button"
+              onClick={() => setCurrentTab('upcoming_trial')}
+              className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                currentTab === 'upcoming_trial'
+                  ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-700/60'
+              }`}
+            >
+              <CalendarCheck className="w-3.5 h-3.5 text-rose-500" />
+              <span>TRIAL</span>
+              {upcomingTrialCount > 0 && (
+                <span
+                  className={`ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-extrabold flex items-center gap-1 ${
+                    upcomingTodayCount > 0
+                      ? 'bg-rose-600 text-white animate-pulse'
+                      : 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border border-rose-300 dark:border-rose-800'
+                  }`}
+                >
+                  {upcomingTodayCount > 0 && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+                  )}
+                  <span>{upcomingTrialCount}</span>
+                </span>
+              )}
+            </button>
+          </div>
 
           {/* Divider between Tabs and Menu */}
           <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-0.5 sm:mx-1" />
@@ -199,7 +212,7 @@ export const Header: React.FC<HeaderProps> = ({
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <span className="font-extrabold text-xs text-slate-900 dark:text-white truncate">
+                        <span className="font-extrabold text-xs text-slate-900 dark:text-white break-words whitespace-normal leading-tight">
                           {currentUser.nama}
                         </span>
                         <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
@@ -208,7 +221,7 @@ export const Header: React.FC<HeaderProps> = ({
                         {currentUser.peran || 'Coach / Instruktur'}
                       </div>
                       {currentUser.email && (
-                        <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                        <div className="text-[10px] text-slate-500 dark:text-slate-400 break-all whitespace-normal mt-0.5">
                           {currentUser.email}
                         </div>
                       )}

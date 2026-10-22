@@ -155,7 +155,7 @@ export const TrialReviewModal: React.FC<TrialReviewModalProps> = ({
               <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase block mb-1">
                 Pelatih Bertugas
               </span>
-              <div className="font-bold text-sm text-slate-800 dark:text-slate-200 truncate">
+              <div className="font-bold text-sm text-slate-800 dark:text-slate-200 break-words whitespace-normal leading-snug">
                 {trial.Coaches && trial.Coaches.length > 0 ? trial.Coaches.join(', ') : 'Belum Ditugaskan'}
               </div>
             </div>
@@ -255,9 +255,9 @@ export const TrialReviewModal: React.FC<TrialReviewModalProps> = ({
                   <span className="text-slate-500">Kontak Darurat:</span>
                   <span className="font-semibold text-rose-600">{trial.Emergency_Contact}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Email:</span>
-                  <span className="truncate max-w-[180px]">{trial.Email || '-'}</span>
+                <div className="flex justify-between items-center gap-2">
+                  <span className="text-slate-500 shrink-0">Email:</span>
+                  <span className="break-all whitespace-normal text-right max-w-[220px]">{trial.Email || '-'}</span>
                 </div>
               </div>
             </div>
@@ -311,9 +311,9 @@ export const TrialReviewModal: React.FC<TrialReviewModalProps> = ({
                       <span className="text-slate-500">Perusahaan:</span>
                       <span>{trial.formadults_perusahaan || '-'}</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Alamat Kantor:</span>
-                      <span className="truncate max-w-[180px]">{trial.formadults_alamatKantor || '-'}</span>
+                    <div className="flex justify-between items-start gap-2">
+                      <span className="text-slate-500 shrink-0">Alamat Kantor:</span>
+                      <span className="break-words whitespace-normal text-right max-w-[240px]">{trial.formadults_alamatKantor || '-'}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-slate-500">Komunitas Olahraga:</span>
@@ -494,9 +494,9 @@ export const TrialReviewModal: React.FC<TrialReviewModalProps> = ({
                           </span>
                         </div>
 
-                        <div className="bg-slate-900/90 p-2.5 rounded-lg border border-slate-800 flex justify-between items-center">
-                          <span className="text-[11px] text-slate-300 font-semibold">Predikat Fisik:</span>
-                          <span className="font-extrabold text-amber-300 text-[11px] truncate max-w-[150px]">
+                        <div className="bg-slate-900/90 p-2.5 rounded-lg border border-slate-800 flex justify-between items-center gap-2">
+                          <span className="text-[11px] text-slate-300 font-semibold shrink-0">Predikat Fisik:</span>
+                          <span className="font-extrabold text-amber-300 text-[11px] break-words whitespace-normal text-right">
                             {getOverallGrade(overallPhysicalAvg)}
                           </span>
                         </div>

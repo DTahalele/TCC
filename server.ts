@@ -45,10 +45,111 @@ function getSharedDb(): SharedDatabase {
 
 function saveSharedDb(data: SharedDatabase) {
   try {
-    fs.writeFileSync(SHARED_DB_FILE, JSON.stringify(data, null, 2), 'utf-8');
+    const tmpFile = `${SHARED_DB_FILE}.${Date.now()}.${Math.random().toString(36).slice(2)}.tmp`;
+    fs.writeFileSync(tmpFile, JSON.stringify(data, null, 2), 'utf-8');
+    fs.renameSync(tmpFile, SHARED_DB_FILE);
   } catch (err) {
     console.error('Error saving shared DB file:', err);
+    try {
+      fs.writeFileSync(SHARED_DB_FILE, JSON.stringify(data, null, 2), 'utf-8');
+    } catch (e) {}
   }
+}
+
+function mergeRecords(existingList: any[] | null, incomingList: any[] | null): any[] {
+  const map = new Map<string, any>();
+
+  const getRecordKey = (r: any): string => {
+    if (!r) return '';
+    if (r.id) return String(r.id);
+    if (r.record_id) return String(r.record_id);
+    if (r.MemberID && r.Test_Date) {
+      return `${String(r.MemberID).trim().toLowerCase()}_${String(r.Test_Date).trim()}`;
+    }
+    return `rec_${Math.random()}`;
+  };
+
+  if (Array.isArray(existingList)) {
+    for (const r of existingList) {
+      if (r) {
+        const key = getRecordKey(r);
+        if (key) map.set(key, r);
+      }
+    }
+  }
+
+  if (Array.isArray(incomingList)) {
+    for (const r of incomingList) {
+      if (r) {
+        const key = getRecordKey(r);
+        if (!key) continue;
+        if (!map.has(key)) {
+          map.set(key, r);
+        } else {
+          const existing = map.get(key);
+          const timeExisting = new Date(existing.updatedAt || existing.createdAt || 0).getTime();
+          const timeIncoming = new Date(r.updatedAt || r.createdAt || 0).getTime();
+          if (timeIncoming >= timeExisting) {
+            map.set(key, { ...existing, ...r });
+          }
+        }
+      }
+    }
+  }
+
+  return Array.from(map.values()).sort((a, b) => {
+    const dateA = a.Test_Date ? new Date(a.Test_Date).getTime() : 0;
+    const dateB = b.Test_Date ? new Date(b.Test_Date).getTime() : 0;
+    if (dateA !== dateB) return dateB - dateA;
+    const timeA = new Date(a.updatedAt || a.createdAt || 0).getTime();
+    const timeB = new Date(b.updatedAt || b.createdAt || 0).getTime();
+    return timeB - timeA;
+  });
+}
+
+function mergeTrials(existingList: any[] | null, incomingList: any[] | null): any[] {
+  const map = new Map<string, any>();
+
+  const getTrialKey = (t: any): string => {
+    if (!t) return '';
+    if (t.id) return String(t.id);
+    if (t.MemberID) return String(t.MemberID).trim().toLowerCase();
+    return `trial_${Math.random()}`;
+  };
+
+  if (Array.isArray(existingList)) {
+    for (const t of existingList) {
+      if (t) {
+        const key = getTrialKey(t);
+        if (key) map.set(key, t);
+      }
+    }
+  }
+
+  if (Array.isArray(incomingList)) {
+    for (const t of incomingList) {
+      if (t) {
+        const key = getTrialKey(t);
+        if (!key) continue;
+        if (!map.has(key)) {
+          map.set(key, t);
+        } else {
+          const existing = map.get(key);
+          const timeExisting = new Date(existing.updatedAt || existing.createdAt || 0).getTime();
+          const timeIncoming = new Date(t.updatedAt || t.createdAt || 0).getTime();
+          if (timeIncoming >= timeExisting) {
+            map.set(key, { ...existing, ...t });
+          }
+        }
+      }
+    }
+  }
+
+  return Array.from(map.values()).sort((a, b) => {
+    const timeA = new Date(a.updatedAt || a.createdAt || 0).getTime();
+    const timeB = new Date(b.updatedAt || b.createdAt || 0).getTime();
+    return timeB - timeA;
+  });
 }
 
 function getAppConfig(): { webhookUrl: string; isConnected: boolean } {
